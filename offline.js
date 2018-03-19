@@ -1,5 +1,5 @@
 ﻿{
-	"version": 1521486815,
+	"version": 1521501633,
 	"fileList": [
 		"data.js",
 		"c2runtime.js",
@@ -35,6 +35,9 @@
 		"images/mine-sheet0.png",
 		"images/mine-sheet1.png",
 		"images/mine_ray-sheet0.png",
+		"images/super_missile-sheet0.png",
+		"images/super_missile_tail-sheet0.png",
+		"images/indicator_super_missile-sheet0.png",
 		"icon-16.png",
 		"icon-32.png",
 		"icon-114.png",
