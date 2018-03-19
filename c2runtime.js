@@ -21210,8 +21210,8 @@ cr.getObjectRefTable = function () { return [
 	cr.plugins_.Keyboard,
 	cr.plugins_.Text,
 	cr.plugins_.Sprite,
-	cr.plugins_.TiledBg,
 	cr.plugins_.Touch,
+	cr.plugins_.TiledBg,
 	cr.behaviors.Bullet,
 	cr.behaviors.bound,
 	cr.behaviors.Rex_RotateTo,
@@ -21288,6 +21288,5 @@ cr.getObjectRefTable = function () { return [
 	cr.plugins_.Sprite.prototype.cnds.IsAnimPlaying,
 	cr.behaviors.Bullet.prototype.exps.Speed,
 	cr.plugins_.Sprite.prototype.acts.MoveToBottom,
-	cr.plugins_.Text.prototype.acts.SetText,
-	cr.plugins_.GAMEEConnector.prototype.acts.SaveState
+	cr.plugins_.Text.prototype.acts.SetText
 ];};
