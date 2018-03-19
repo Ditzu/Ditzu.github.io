@@ -1,5 +1,5 @@
 ﻿{
-	"version": 1521414545,
+	"version": 1521482737,
 	"fileList": [
 		"data.js",
 		"c2runtime.js",
@@ -32,6 +32,9 @@
 		"images/streak-sheet0.png",
 		"images/streak_frame-sheet0.png",
 		"images/streak_loading-sheet0.png",
+		"images/mine-sheet0.png",
+		"images/mine-sheet1.png",
+		"images/mine_ray-sheet0.png",
 		"icon-16.png",
 		"icon-32.png",
 		"icon-114.png",
