@@ -15261,6 +15261,399 @@ cr.shaders["swirl"] = {src: ["#ifdef GL_FRAGMENT_PRECISION_HIGH",
 	preservesOpaqueness: false,
 	animated: false,
 	parameters: [["radius", 0, 1], ["angle", 0, 1]] }
+;
+;
+cr.plugins_.Facebook = function(runtime)
+{
+	this.runtime = runtime;
+};
+(function ()
+{
+	var pluginProto = cr.plugins_.Facebook.prototype;
+	pluginProto.Type = function(plugin)
+	{
+		this.plugin = plugin;
+		this.runtime = plugin.runtime;
+	};
+	var typeProto = pluginProto.Type.prototype;
+	var fbAppID = "";
+	var fbAppSecret = "";
+	var fbReady = false;
+	var fbLoggedIn = false;
+	var fbUserID = "";
+	var fbFullName = "";
+	var fbFirstName = "";
+	var fbLastName = "";
+	var fbRuntime = null;
+	var fbInst = null;
+	var fbScore = 0;
+	var fbHiscoreName = "";
+	var fbHiscoreUserID = 0;
+	var fbRank = 0;
+	var fbCanPublishStream = false;
+	var fbCanPublishAction = false;
+	var fbPerms = "";
+	var triggeredReady = false;
+	function onFBLogin()
+	{
+		if (!fbLoggedIn)
+		{
+			fbLoggedIn = true;
+			fbRuntime.trigger(cr.plugins_.Facebook.prototype.cnds.OnLogIn, fbInst);
+			FB.api('/me?fields=name,first_name,last_name', function(response) {
+							fbFullName = response["name"];
+							fbFirstName = response["first_name"];
+							fbLastName = response["last_name"];
+							fbRuntime.trigger(cr.plugins_.Facebook.prototype.cnds.OnNameAvailable, fbInst);
+						});
+		}
+	};
+	typeProto.onCreate = function()
+	{
+	};
+	pluginProto.Instance = function(type)
+	{
+		this.type = type;
+		this.runtime = type.runtime;
+	};
+	var instanceProto = pluginProto.Instance.prototype;
+	instanceProto.onCreate = function()
+	{
+		if (this.runtime.isDomFree)
+		{
+			cr.logexport("[Construct 2] Facebook plugin not supported on this platform - the object will not be created");
+			return;
+		}
+		this.runtime.tickMe(this);
+		fbAppID = this.properties[0];
+		fbAppSecret = this.properties[1];
+		fbRuntime = this.runtime;
+		fbInst = this;
+		window.fbAsyncInit = function() {
+			var channelfile = '//' + location.hostname;
+			var pname = location.pathname;
+			if (pname.substr(pname.length - 1) !== '/')
+				pname = pname.substr(0, pname.lastIndexOf('/') + 1);
+			FB.init({
+			  "appId"      : fbAppID,
+			  "channelURL" : '//' + location.hostname + pname + 'channel.html',
+			  "status"     : true,
+			  "cookie"     : true,
+			  "oauth"      : true,
+			  "xfbml"      : false
+			});
+			fbReady = true;
+			FB.Event.subscribe('auth.login', function(response) {
+				if (!response["authResponse"])
+					return;
+				fbUserID = response["authResponse"]["userID"];
+;
+				onFBLogin();
+			});
+			FB.Event.subscribe('auth.logout', function(response) {
+				if (fbLoggedIn)
+				{
+					fbLoggedIn = false;
+					fbFullName = "";
+					fbFirstName = "";
+					fbLastName = "";
+					fbRuntime.trigger(cr.plugins_.Facebook.prototype.cnds.OnLogOut, fbInst);
+				}
+			});
+			FB.getLoginStatus(function(response) {
+				if (response["authResponse"])
+				{
+					fbUserID = response["authResponse"]["userID"];
+;
+					onFBLogin();
+				}
+			});
+			if (!triggeredReady)
+			{
+				triggeredReady = true;
+				fbRuntime.trigger(cr.plugins_.Facebook.prototype.cnds.OnReady, fbInst);
+			}
+		};
+		if (fbAppID.length)
+		{
+			(function(d){
+				var js, id = 'facebook-jssdk'; if (d.getElementById(id)) {return;}
+				js = d.createElement('script'); js.id = id; js.async = true;
+				js.src = "//connect.facebook.net/en_US/all.js";
+				d.getElementsByTagName('head')[0].appendChild(js);
+			}(document));
+		}
+		else
+;
+	};
+	instanceProto.tick = function ()
+	{
+		if (triggeredReady)
+			return;
+		if (fbReady)
+		{
+			triggeredReady = true;
+			fbRuntime.trigger(cr.plugins_.Facebook.prototype.cnds.OnReady, fbInst);
+		}
+	};
+	instanceProto.onLayoutChange = function ()
+	{
+		if (this.runtime.isDomFree)
+			return;
+		if (fbLoggedIn)
+			fbRuntime.trigger(cr.plugins_.Facebook.prototype.cnds.OnLogIn, fbInst);
+		if (fbFullName.length)
+			fbRuntime.trigger(cr.plugins_.Facebook.prototype.cnds.OnNameAvailable, fbInst);
+	};
+	function Cnds() {};
+	Cnds.prototype.IsReady = function ()
+	{
+		return fbReady;
+	};
+	Cnds.prototype.OnReady = function ()
+	{
+		return true;
+	};
+	Cnds.prototype.IsLoggedIn = function ()
+	{
+		return fbLoggedIn;
+	};
+	Cnds.prototype.OnLogIn = function ()
+	{
+		return true;
+	};
+	Cnds.prototype.OnLogOut = function ()
+	{
+		return true;
+	};
+	Cnds.prototype.OnNameAvailable = function ()
+	{
+		return true;
+	};
+	Cnds.prototype.OnUserTopScoreAvailable = function ()
+	{
+		return true;
+	};
+	Cnds.prototype.OnHiscore = function ()
+	{
+		return true;
+	};
+	Cnds.prototype.OnScoreSubmitted = function ()
+	{
+		return true;
+	};
+	pluginProto.cnds = new Cnds();
+	function Acts() {};
+	Acts.prototype.LogIn = function (perm_stream, perm_action)
+	{
+		if (this.runtime.isDomFree || !fbReady)
+			return;
+		fbCanPublishStream = (perm_stream === 1);
+		fbCanPublishAction = (perm_action === 1);
+		var perms = [];
+		if (fbCanPublishStream)
+			perms.push("publish_stream");
+		if (fbCanPublishAction)
+			perms.push("publish_actions");
+		var newperms = perms.join();
+			fbPerms = newperms;
+			FB.login(function(response) {
+					if (response["authResponse"])
+						onFBLogin();
+				}, {scope: fbPerms});
+	};
+	Acts.prototype.LogIn2 = function (permissionsString)
+	{
+		if (this.runtime.isDomFree || !fbReady)
+			return;
+			fbPerms = permissionsString;
+			FB.login(function(response) {
+					if (response["authResponse"])
+						onFBLogin();
+				}, {scope: fbPerms});
+	};
+	Acts.prototype.LogOut = function ()
+	{
+		if (this.runtime.isDomFree)
+			return;
+		if (fbLoggedIn)
+			FB.logout(function(response) {});
+	};
+	Acts.prototype.PromptWallPost = function ()
+	{
+		if (this.runtime.isDomFree || !fbLoggedIn)
+			return;
+		FB.ui({ "method": "feed" }, function(response) {
+				if (!response || response.error)
+					  console.error(response);
+			});
+	};
+	Acts.prototype.PromptToShareApp = function ()
+	{
+		if (this.runtime.isDomFree || !fbLoggedIn)
+			return;
+		FB.ui({
+				"method": "feed",
+				"link": "http://apps.facebook.com/" + fbAppID + "/"
+			  }, function(response) {
+				  if (!response || response.error)
+						  console.error(response);
+			});
+	};
+	Acts.prototype.PromptToShareLink = function (url_)
+	{
+		if (this.runtime.isDomFree || !fbLoggedIn)
+			return;
+		FB.ui({
+				"method": "feed",
+				"link": url_
+			  }, function(response) {
+					if (!response || response.error)
+						console.error(response);
+			});
+	};
+	Acts.prototype.PublishToWall = function (message_)
+	{
+		if (this.runtime.isDomFree || !fbLoggedIn)
+			return;
+		var publish = {
+			"method": 'stream.publish',
+			"message": message_
+		};
+		FB.api('/me/feed', 'POST', publish, function(response) {
+				if (!response || response.error)
+					console.error(response);
+			});
+	};
+	Acts.prototype.PublishLink = function (message_, url_, name_, caption_, description_, picture_)
+	{
+		if (this.runtime.isDomFree || !fbLoggedIn)
+			return;
+		var publish = {
+				"method": 'stream.publish',
+				"message": message_,
+				"link": url_,
+				"name": name_,
+				"caption": caption_,
+				"description": description_
+			};
+		if (picture_.length)
+			publish["picture"] = picture_;
+		FB.api('/me/feed', 'POST', publish, function(response) {
+				if (!response || response.error)
+					console.error(response);
+			});
+	};
+	Acts.prototype.PublishScore = function (score_)
+	{
+		if (this.runtime.isDomFree || !fbLoggedIn)
+			return;
+		FB.api('/' + fbUserID + '/scores', 'POST', { "score": Math.floor(score_), "access_token": fbAppID + "|" + fbAppSecret }, function(response) {
+			fbRuntime.trigger(cr.plugins_.Facebook.prototype.cnds.OnScoreSubmitted, fbInst);
+			if (!response || response.error)
+				console.error(response);
+	   });
+	};
+	Acts.prototype.RequestUserHiscore = function ()
+	{
+		if (this.runtime.isDomFree || !fbLoggedIn)
+			return;
+		FB.api('/me/scores', 'GET', {}, function(response) {
+			fbScore = 0;
+			var arr = response["data"];
+			if (!arr)
+			{
+				console.error("Request for user hi-score failed: " + response);
+				return;
+			}
+			var i, len;
+			for (i = 0, len = arr.length; i < len; i++)
+			{
+				if (arr[i]["score"] > fbScore)
+					fbScore = arr[i]["score"];
+			}
+			fbRuntime.trigger(cr.plugins_.Facebook.prototype.cnds.OnUserTopScoreAvailable, fbInst);
+			if (!response || response.error) {
+			  console.error(response);
+		    } else {
+;
+		    }
+		});
+	};
+	Acts.prototype.RequestHiscores = function (n)
+	{
+		if (this.runtime.isDomFree || !fbLoggedIn)
+			return;
+		FB.api('/' + fbAppID + '/scores', 'GET', {}, function(response) {
+			var arr = response["data"];
+			if (!arr)
+			{
+				console.error("Hi-scores request failed: " + response);
+				return;
+			}
+			arr.sort(function(a, b) {
+				return b["score"] - a["score"];
+			});
+			var i = 0, len = Math.min(arr.length, n);
+			for ( ; i < len; i++)
+			{
+				fbScore = arr[i]["score"];
+				fbHiscoreName = arr[i]["user"]["name"];
+				fbHiscoreUserID = arr[i]["user"]["id"];
+				fbRank = i + 1;
+				fbRuntime.trigger(cr.plugins_.Facebook.prototype.cnds.OnHiscore, fbInst);
+			}
+			if (!response || response.error) {
+			  console.error(response);
+		    } else {
+;
+		    }
+		});
+	};
+	pluginProto.acts = new Acts();
+	function Exps() {};
+	Exps.prototype.FullName = function (ret)
+	{
+		ret.set_string(fbFullName);
+	};
+	Exps.prototype.FirstName = function (ret)
+	{
+		ret.set_string(fbFirstName);
+	};
+	Exps.prototype.LastName = function (ret)
+	{
+		ret.set_string(fbLastName);
+	};
+	Exps.prototype.Score = function (ret)
+	{
+		ret.set_int(fbScore);
+	};
+	Exps.prototype.HiscoreName = function (ret)
+	{
+		ret.set_string(fbHiscoreName);
+	};
+	Exps.prototype.HiscoreUserID = function (ret)
+	{
+		ret.set_int(parseFloat(fbHiscoreUserID));
+	};
+	Exps.prototype.HiscoreUserIDStr = function (ret)
+	{
+		ret.set_string(fbHiscoreUserID);
+	};
+	Exps.prototype.HiscoreRank = function (ret)
+	{
+		ret.set_int(fbRank);
+	};
+	Exps.prototype.UserID = function (ret)
+	{
+		ret.set_float(parseFloat(fbUserID));
+	};
+	Exps.prototype.UserIDStr = function (ret)
+	{
+		ret.set_string(fbUserID);
+	};
+	pluginProto.exps = new Exps();
+}());
 /*! @preserve build time 2018-02-27 19:38:20 */
 !function(t,e){if("object"==typeof exports&&"object"==typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{var o=e();for(var n in o)("object"==typeof exports?exports:t)[n]=o[n]}}(this,function(){return function(t){function __webpack_require__(o){if(e[o])return e[o].exports;var n=e[o]={i:o,l:!1,exports:{}};return t[o].call(n.exports,n,n.exports,__webpack_require__),n.l=!0,n.exports}var e={};return __webpack_require__.m=t,__webpack_require__.c=e,__webpack_require__.i=function(t){return t},__webpack_require__.d=function(t,e,o){__webpack_require__.o(t,e)||Object.defineProperty(t,e,{configurable:!1,enumerable:!0,get:o})},__webpack_require__.n=function(t){var e=t&&t.__esModule?function(){return t.default}:function(){return t};return __webpack_require__.d(e,"a",e),e},__webpack_require__.o=function(t,e){return Object.prototype.hasOwnProperty.call(t,e)},__webpack_require__.p="",__webpack_require__(__webpack_require__.s=8)}([function(t,e,o){"use strict";function CustomEmitter(){function delegate(e){this[e]=t[e].bind(t)}var t=document.createDocumentFragment();["addEventListener","dispatchEvent","removeEventListener"].forEach(delegate,this)}function wrapKeyEvent(t){return function(e){return e&&e.keyCode||(e||(e=window.event),e.which&&(e.keyCode=e.which)),t(e)}}Object.defineProperty(e,"__esModule",{value:!0}),e.CustomEmitter=CustomEmitter,e.wrapKeyEvent=wrapKeyEvent,function(){try{var t=new window.CustomEvent("test");if(t.preventDefault(),!0!==t.defaultPrevented)throw new Error("Could not prevent default")}catch(t){var e=function(t,e){var o,n;return e=e||{bubbles:!1,cancelable:!1,detail:void 0},o=document.createEvent("CustomEvent"),o.initCustomEvent(t,e.bubbles,e.cancelable,e.detail),n=o.preventDefault,o.preventDefault=function(){n.call(this);try{Object.defineProperty(this,"defaultPrevented",{get:function(){return!0}})}catch(t){this.defaultPrevented=!0}},o};e.prototype=window.Event.prototype,window.CustomEvent=e}}(),function(t,e){function docHijack(t){var o=e[t];e[t]=function(t){return addListen(o(t))}}function addEvent(e,o,n){return(n=this).attachEvent("on"+e,function(e){e=e||t.event,e.preventDefault=e.preventDefault||function(){e.returnValue=!1},e.stopPropagation=e.stopPropagation||function(){e.cancelBubble=!0},o.call(n,e)})}function addListen(t,e){if(e=t.length)for(;e--;)t[e].addEventListener=addEvent;else t.addEventListener=addEvent;return t}t.addEventListener||(addListen([e,t]),"Element"in t?t.Element.prototype.addEventListener=addEvent:(e.attachEvent("onreadystatechange",function(){addListen(e.all)}),docHijack("getElementsByTagName"),docHijack("getElementById"),docHijack("createElement"),addListen(e.all)))}(window,document)},function(t,e,o){"use strict";(function(t){Object.defineProperty(e,"__esModule",{value:!0}),e.validateDataType=e.DataTypeException=e.core=void 0;var n="function"==typeof Symbol&&"symbol"==typeof Symbol.iterator?function(t){return typeof t}:function(t){return t&&"function"==typeof Symbol&&t.constructor===Symbol&&t!==Symbol.prototype?"symbol":typeof t},r=o(4),i=function(t){if(t&&t.__esModule)return t;var e={};if(null!=t)for(var o in t)Object.prototype.hasOwnProperty.call(t,o)&&(e[o]=t[o]);return e.default=t,e}(r),a=o(0),s=(e.core=function(){function createController(t,e){var o,n;if(!s[t])throw new Error("Unsupported controller type, "+t);if(e=e||{},n=new s[t],e.enableKeyboard&&n.enableKeyboard(r),e.buttons)for(o in e.buttons)n.remapButton(o,e.buttons[o]);return n}var e=function(){},o={},n={VERSION:"2.0",CAPABILITIES:["ghostMode","saveState","replay","socialData"],variant:0,soundUnlocked:!1,onReady:e,onGameStart:e},r={};r.gameeInit=function(t,e,i,a){var s=!0,u={};if(void 0!==i&&Array.isArray(i))for(var c=0;c<i.length;c++)"string"==typeof i[c]&&-1!==n.CAPABILITIES.indexOf(i[c])||(s=!1),u[i[c]]=!0;else s=!1;if(!s)throw"Capabilities array passed to gameeInit is void, malformed or unsupported capabilites requested.";this.native.createRequest("init",{version:n.VERSION,controller:t,capabilities:u},function(e){o.capabilities=u;var n=null;try{"web"===this.native.platform||"fb"===this.native.platform?(e.controller=r.controller.requestController(t,{enableKeyboard:!0}),this._bindKeyboardTriggers(e.controller)):e.controller=r.controller.requestController(t,{})}catch(t){n=t}a(n,e)}.bind(this))},r._bindKeyboardTriggers=function(e){t.addEventListener("message",function(t){switch(t.data[0]){case"button_button_down":e.trigger("keydown",{button:"button"});break;case"button_button_up":e.trigger("keyup",{button:"button"});break;case"button_left_up":e.trigger("keyup",{button:"left"});break;case"button_left_down":e.trigger("keydown",{button:"left"});break;case"button_right_down":e.trigger("keydown",{button:"right"});break;case"button_right_up":e.trigger("keyup",{button:"right"});break;case"button_up_down":e.trigger("keydown",{button:"up"});break;case"button_up_up":e.trigger("keyup",{button:"up"});break;case"button_down_down":e.trigger("keydown",{button:"down"});break;case"button_down_up":e.trigger("keyup",{button:"down"});break;case"button_a_down":e.trigger("keydown",{button:"A"});break;case"button_a_up":e.trigger("keyup",{button:"A"});break;case"button_b_down":e.trigger("keydown",{button:"B"});break;case"button_b_up":e.trigger("keyup",{button:"B"})}})},r.gameLoadingProgress=function(){var t=0;return function(e){if("number"!=typeof e||e<0||e>100)throw"Percentage passed to gameLoadingProgress out of bounds or not a number.";e>t&&(t=e,this.native.createRequest("gameLoadingProgress",{percentage:e}))}}(),r.gameReady=function(){this.native.createRequest("gameReady")},r.updateScore=function(t,e){if("number"!=typeof t)throw"Score passed to updateScore is not a number.";var o={score:parseInt(t,10)};e&&(o.ghostSign=!0),this.native.createRequest("updateScore",o)},r.gameOver=function(t){var e={};if(t){if(t.hasOwnProperty("variant")||(t.variant=""),!t.hasOwnProperty("data"))throw"Replay data must have `data` property";e.replayData=t}r.native.createRequest("gameOver",e)},r.gameSave=function(t,e){r.native.createRequest("saveState",{state:t,share:e})},r.requestSocial=function(t){this.native.createRequest("requestSocial",function(e){t(null,e)})},r.startSignal=function(t){var e;return t.replay&&!o.capabilities.replay&&(e="Game doesn't support replay. "),t.ghostMode&&!o.capabilities.ghostMode&&(e="Game doesn't support ghost Mode. "),e},r.controller={mainController:null,requestController:function(t,e){if("FullScreen"===t)return null;var o=createController(t,e);return this.mainController=o,o},additionalController:function(t,e){var o=createController(t,e);return gameeNative.additionalController(t),o},trigger:function(){if(!this.mainController)throw new Error("No controller present");this.mainController.trigger.apply(this.mainController,arguments)}},r._keydown=function(e){t.addEventListener("keydown",(0,a.wrapKeyEvent)(e))},r._keyup=function(e){t.addEventListener("keyup",(0,a.wrapKeyEvent)(e))};var s={OneButton:i.OneButtonController,TwoButtons:i.TwoButtonController,FourButtons:i.FourButtonController,FiveButtons:i.FiveButtonController,SixButtons:i.SixButtonController,FourArrows:i.FourArrowController,Touch:i.TouchController,Joystick:i.JoystickController,JoystickWithButton:i.JoystickButtonController,TwoArrowsTwoButtons:i.TwoArrowsTwoButtonsController,TwoArrowsOneButton:i.TwoArrowsOneButtonController,TwoActionButtons:i.TwoActionButtonsController};return r.registerPlatform=function(t){},r}(),e.DataTypeException=function(t,e,o,n){this.expected=t,this.present=e,this.method=n,this.argument=o,this.message="Invalid data type in method "+this.method+", argument "+this.argument+" is expected to be "+this.expected+", but found "+this.present});e.validateDataType=function(t,e,o,r){switch(e){case"array":if(!Array.isArray(t))throw new s(e,void 0===t?"undefined":n(t),o,r);break;default:if((void 0===t?"undefined":n(t))!==e)throw new s(e,void 0===t?"undefined":n(t),o,r)}}}).call(e,o(7))},function(t,e,o){"use strict";Object.defineProperty(e,"__esModule",{value:!0}),e.gamee=void 0,o(0);var n=o(5),r=o(1),i=o(6),a=e.gamee=void 0,s=function(){var t,o="web",r=navigator.userAgent.toLowerCase();switch(window.parent!==window&&(/facebook\./.test(document.referrer)||/messenger\.com/.test(document.referrer))?o="fb":/iphone|ipod|ipad/.test(r)?o=window.self!==window.top?"web":"ios":/gamee\/[0-9\.]+$/.test(r)?o="android":window.parent?o="web":window.parent&&window.parent.gameeSimulator&&(o="web"),e.gamee=a=new n.Gamee(o),window.gamee=a,o){case"web":window.parent,window,t=new i.PostMessageBridge(window.parent);break;case"ios":t=new i.MobileBridge("ios");break;case"android":t=new i.MobileBridge("android");break;case"fb":t=new i.FacebookBridge("fb");break;default:throw"Can't identify the platform"}return t}();r.core.PlatformAPI=i.PlatformAPI,r.core.native=s,i.PlatformAPI.emitter=a.emitter},function(t,e,o){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var n=function(){var t=this,e={};t.on=function(t,o,n){if(!(arguments.length<2||"string"!=typeof t||"function"!=typeof o)){var r=o.toString();void 0!==e[t]?void 0===e[t].callbacks[r]?e[t].callbacks[r]={cb:o,once:!!n}:"boolean"==typeof n&&(e[t].callbacks[r].once=n):(e[t]={callbacks:{}},e[t].callbacks[r]={cb:o,once:!!n})}},t.once=function(e,o){t.on(e,o,!0)},t.off=function(t,o){if("string"==typeof t&&void 0!==e[t])if("function"==typeof o){var n=o.toString(),r=e[t].callbacks[n];void 0!==r&&delete e[t].callbacks[n]}else delete e[t]},t.trigger=function(o,n){if("string"==typeof o&&void 0!==e[o])for(var r in e[o].callbacks){var i=e[o].callbacks[r];"function"==typeof i.cb&&i.cb(n),"boolean"==typeof i.once&&!0===i.once&&t.off(o,i.cb)}}};e.Bullet=new n},function(t,e,o){"use strict";function Button(t,e){var o=this;r.call(this),this._pressed=!0,this.key=t,this.keyCode=e,this.on("keydown",function(){o._pressed=!0}),this.on("keyup",function(){o._pressed=!1})}function Controller(){var t=this;r.call(this),this.buttons={},this.buttonAlias={},this.on("$keydown",function(e){e.button&&t.buttonAlias[e.button]&&(e.button=t.buttonAlias[e.button]),t.trigger("keydown",e)}),this.on("$keyup",function(e){e.button&&t.buttonAlias[e.button]&&(e.button=t.buttonAlias[e.button]),t.trigger("keyup",e)}),this.on("keydown",function(e){e.button&&t.buttons[e.button]&&t.buttons[e.button].trigger("keydown")}),this.on("keyup",function(e){e.button&&t.buttons[e.button]&&t.buttons[e.button].trigger("keyup")})}function OneButtonController(){Controller.call(this),this.addButton(new Button("button",32))}function TwoButtonController(){Controller.call(this),this.addButton(new Button("left",37)),this.addButton(new Button("right",39))}function TwoActionButtonsController(){Controller.call(this),this.addButton(new Button("A",32)),this.addButton(new Button("B",17))}function FourButtonController(){Controller.call(this),this.addButton(new Button("up",38)),this.addButton(new Button("left",37)),this.addButton(new Button("right",39)),this.addButton(new Button("A",32))}function FiveButtonController(){Controller.call(this),this.addButton(new Button("up",38)),this.addButton(new Button("left",37)),this.addButton(new Button("right",39)),this.addButton(new Button("down",40)),this.addButton(new Button("A",32))}function SixButtonController(){Controller.call(this),this.addButton(new Button("up",38)),this.addButton(new Button("left",37)),this.addButton(new Button("right",39)),this.addButton(new Button("down",40)),this.addButton(new Button("A",32)),this.addButton(new Button("B",17))}function TwoArrowsOneButtonController(){Controller.call(this),this.addButton(new Button("left",37)),this.addButton(new Button("right",39)),this.addButton(new Button("A",32))}function TwoArrowsTwoButtonsController(){Controller.call(this),this.addButton(new Button("left",37)),this.addButton(new Button("right",39)),this.addButton(new Button("A",32)),this.addButton(new Button("B",17))}function FourArrowController(){Controller.call(this),this.addButton(new Button("up",38)),this.addButton(new Button("left",37)),this.addButton(new Button("right",39)),this.addButton(new Button("down",40))}function TouchController(){var t=this;Controller.call(this),this.on("$touchstart",function(e){t.trigger("touchstart",e)}),this.on("$touchend",function(e){t.trigger("touchend",e)}),this.on("$touchmove",function(e){t.trigger("touchmove",e)}),this.on("$touchleave",function(e){t.trigger("touchleave",e)}),this.on("$touchcancel",function(e){t.trigger("touchcancel",e)})}function JoystickController(){var t=this;Controller.call(this),this.x=0,this.y=0,this.on("$change",function(e){t.x=e.position.x,t.y=e.position.y,t.trigger("change",e)})}function JoystickButtonController(){JoystickController.call(this),this.addButton(new Button("button",32))}Object.defineProperty(e,"__esModule",{value:!0}),e.BulletClass=void 0,e.Button=Button,e.Controller=Controller,e.OneButtonController=OneButtonController,e.TwoButtonController=TwoButtonController,e.TwoActionButtonsController=TwoActionButtonsController,e.FourButtonController=FourButtonController,e.FiveButtonController=FiveButtonController,e.SixButtonController=SixButtonController,e.TwoArrowsOneButtonController=TwoArrowsOneButtonController,e.TwoArrowsTwoButtonsController=TwoArrowsTwoButtonsController,e.FourArrowController=FourArrowController,e.TouchController=TouchController,e.JoystickController=JoystickController,e.JoystickButtonController=JoystickButtonController;var n=o(3),r=e.BulletClass=n.Bullet.constructor;Button.prototype=Object.create(r.constructor.prototype),Button.constructor=Button,Button.prototype.isDown=function(){return this._pressed},Controller.prototype=Object.create(r.constructor.prototype),Controller.constructor=Controller,Controller.prototype.addButton=function(t){this.buttons[t.key]=t},Controller.prototype.enableKeyboard=function(t){var e,o,n={},r=this;for(e in this.buttons)o=this.buttons[e],o.keyCode&&(n[o.keyCode]=o);t._keydown(function(t){var e=n[t.keyCode];e&&(t.preventDefault(),r.trigger("keydown",{button:e.key}))}),t._keyup(function(t){var e=n[t.keyCode];e&&(t.preventDefault(),r.trigger("keyup",{button:e.key}))})},Controller.prototype.remapButton=function(t,e){if(e.name&&(e=e.name),!this.buttons[t])throw Error("Button "+t+" was not found in controller");this.buttonAlias[t]=e.name,this.buttons[e.name]=this.buttons[t],delete this.buttons[t]},OneButtonController.prototype=Object.create(Controller.prototype),OneButtonController.prototype.constructor=OneButtonController,TwoButtonController.prototype=Object.create(Controller.prototype),TwoButtonController.prototype.constructor=TwoButtonController,TwoActionButtonsController.prototype=Object.create(Controller.prototype),TwoActionButtonsController.prototype.constructor=TwoActionButtonsController,FourButtonController.prototype=Object.create(Controller.prototype),FourButtonController.prototype.constructor=FourButtonController,FiveButtonController.prototype=Object.create(Controller.prototype),FiveButtonController.prototype.constructor=FiveButtonController,SixButtonController.prototype=Object.create(Controller.prototype),SixButtonController.prototype.constructor=SixButtonController,TwoArrowsOneButtonController.prototype=Object.create(Controller.prototype),TwoArrowsOneButtonController.prototype.constructor=TwoArrowsOneButtonController,TwoArrowsTwoButtonsController.prototype=Object.create(Controller.prototype),TwoArrowsTwoButtonsController.prototype.constructor=TwoArrowsTwoButtonsController,FourArrowController.prototype=Object.create(Controller.prototype),FourArrowController.prototype.constructor=FourArrowController,TouchController.prototype=Object.create(TouchController.prototype),TouchController.prototype.constructor=TouchController,JoystickController.prototype=Object.create(Controller.prototype),JoystickController.prototype.constructor=JoystickController,JoystickButtonController.prototype=Object.create(JoystickController.prototype),JoystickButtonController.prototype.constructor=JoystickButtonController},function(t,e,o){"use strict";Object.defineProperty(e,"__esModule",{value:!0}),e.Gamee=e.GameeEmitter=void 0;var n=o(1),r=o(0),i=e.GameeEmitter=function(){r.CustomEmitter.call(this)};(e.Gamee=function(t){this.emitter=new i,this._platform=t}).prototype=function(){var t=function(t){if(t)throw"Error "+t.toString()};return{_controller:n.core.controller,gameInit:function(t,e,o,r){(0,n.validateDataType)(t,"string","controllType","gamee.updateScore"),(0,n.validateDataType)(e,"object","controllOpts","gamee.gameInit"),(0,n.validateDataType)(o,"array","capabilities","gamee.gameInit"),(0,n.validateDataType)(r,"function","cb","gamee.gameInit"),n.core.gameeInit(t,e,o,r)},gameLoadingProgress:function(e,o){(0,n.validateDataType)(e,"number","percentage","gamee.gameLoadingProgress"),o=o||t,(0,n.validateDataType)(o,"function","opt_cb","gamee.gameLoadingProgress"),n.core.gameLoadingProgress(e),o(null)},gameReady:function(e){e=e||t,(0,n.validateDataType)(e,"function","opt_cb","gamee.gameReady"),n.core.gameReady(),e(null)},gameSave:function(e,o,r){(0,n.validateDataType)(e,"string","data","gamee.gameSave"),"function"==typeof o?r=o:void 0!==o&&(0,n.validateDataType)(o,"boolean","opt_share","gamee.gameSave"),r=r||t,(0,n.validateDataType)(r,"function","opt_cb","gamee.gameSave"),n.core.gameSave(e,!1),r(null)},getPlatform:function(){return this._platform},updateScore:function(e,o,r){(0,n.validateDataType)(e,"number","score","gamee.updateScore"),"function"==typeof o?r=o:void 0!==o&&(0,n.validateDataType)(o,"boolean","opt_ghostSign","gamee.updateScore"),r=r||t,(0,n.validateDataType)(r,"function","opt_cb","gamee.updateScore"),n.core.updateScore(e,o),r(null)},gameOver:function(e,o){"function"==typeof e?o=e:void 0!==e&&(0,n.validateDataType)(e,"object","opt_replayData","gamee.gameOver"),o=o||t,(0,n.validateDataType)(o,"function","opt_cb","gamee.gameOver"),n.core.gameOver(e),o(null)},requestSocial:function(t){(0,n.validateDataType)(t,"function","cb","gamee.requestSocial"),"ios"===this._platform?n.core.requestSocial(function(e,o){var n={};n.socialData=o,t(null,n)}):n.core.requestSocial(t)}}}()},function(t,e,o){"use strict";function PlatformBridge(){this.requests={},this.platform="",this._init()}function PostMessageBridge(t){this._gameeWin=t,PlatformBridge.call(this),this.platform="web"}function MobileBridge(t){this.device=t,PostMessageBridge.call(this),this.platform="mobile"}function FacebookBridge(){PlatformBridge.call(this),this.platform="fb"}Object.defineProperty(e,"__esModule",{value:!0}),e.PlatformAPI=void 0;var n="function"==typeof Symbol&&"symbol"==typeof Symbol.iterator?function(t){return typeof t}:function(t){return t&&"function"==typeof Symbol&&t.constructor===Symbol&&t!==Symbol.prototype?"symbol":typeof t};e.PlatformBridge=PlatformBridge,e.PostMessageBridge=PostMessageBridge,e.MobileBridge=MobileBridge,e.FacebookBridge=FacebookBridge;var r=o(1),i=e.PlatformAPI={emitter:null,pause:function(t){var e=new CustomEvent("pause",{detail:{callback:t}});this.emitter.dispatchEvent(e)},resume:function(t){var e=new CustomEvent("resume",{detail:{callback:t}});this.emitter.dispatchEvent(e)},ghostShow:function(t){var e=new CustomEvent("ghostShow",{detail:{callback:t}});this.emitter.dispatchEvent(e)},ghostHide:function(t){var e=new CustomEvent("ghostHide",{detail:{callback:t}});this.emitter.dispatchEvent(e)},mute:function(t){var e=new CustomEvent("mute",{detail:{callback:t}});this.emitter.dispatchEvent(e)},unmute:function(t){var e=new CustomEvent("unmute",{detail:{callback:t}});this.emitter.dispatchEvent(e)},start:function(t,e){var o=new CustomEvent("start",{detail:{callback:e}}),n=r.core.startSignal(t);if(n)return void e(n);t.replay&&(o.detail.opt_replay=!0),t.ghostMode&&(o.detail.opt_ghostMode=!0),t.resetState&&(o.detail.opt_resetState=!0),this.emitter.dispatchEvent(o)}};PlatformBridge.prototype={instCount:0,_init:function(){},createRequest:function(t,e,o){if(this.validateMethod(t)){"function"==typeof e&&(o=e,e=void 0);var n=this.instCount++;void 0!==o&&(this.requests[n]=o);var r={request:{method:t,messageId:n,data:null}};this.doCall(r,e)}},validateMethod:function(t){return"gameLoadingProgress"!==t},doCall:function(t,e){throw"Not implemented"},_callback:function(t,e){var o=this.requests[t];delete this.requests[t],o&&o(e)},doResponse:function(t,e){throw"Not implemented"}},PostMessageBridge.prototype=Object.create(PlatformBridge.prototype),PostMessageBridge.prototype.constructor=PostMessageBridge,PostMessageBridge.prototype._init=function(){window.addEventListener("message",function(t){var e;if("object"===n(t.detail)&&null!==typeof t.detail)e=t.detail;else{if("object"!==n(t.data))return;e=t.data}if(e.request&&e.request.method&&void 0!==e.request.messageId)this._resolveAPICall(e.request.method,e.request.messageId,e.request.data);else if(e.response&&void 0!==e.response.messageId){if(e.error)throw e.error;this._callback(e.response.messageId,e.response.data)}}.bind(this),!1)},PostMessageBridge.prototype.doCall=function(t,e){"object"===(void 0===e?"undefined":n(e))&&(t.request.data=e||{}),this._gameeWin.postMessage(t,"*")},PostMessageBridge.prototype.doResponse=function(t,e){var o={version:this.version,response:{messageId:t}};e&&(o.data=e),this._gameeWin.postMessage(o,"*")},PostMessageBridge.prototype._resolveAPICall=function(t,e,o){var n=this.doResponse.bind(this,e);switch(t){case"pause":i.pause(n);break;case"resume":i.resume(n);break;case"mute":i.mute(n);break;case"unmute":i.unmute(n);break;case"ghostShow":i.ghostShow(n);break;case"ghostHide":i.ghostHide(n);break;case"start":if(!o)throw"Method _start missing params";i.start(o,n)}},MobileBridge.prototype=Object.create(PostMessageBridge.prototype),MobileBridge.prototype.constructor=MobileBridge,MobileBridge.prototype._init=function(){if(PostMessageBridge.prototype._init.call(this),"ios"===this.device)this._gameeWin=webkit.messageHandlers.callbackHandler;else{if("android"!==this.device)throw"Unknown device used in webkit bridge";this._gameeWin=_toDevice}window._triggerMessage=function(t){try{t=JSON.parse(t)}catch(e){throw"Couldn't parse message from native app: \n"+t+"\n"+e}this.dispatchEvent(new CustomEvent("message",{detail:t}))}.bind(window)},MobileBridge.prototype.doCall=function(t,e){"object"===(void 0===e?"undefined":n(e))&&(t.request.data=e||{}),"android"===this.device&&(t=JSON.stringify(t)),this._gameeWin.postMessage(t,"*")},FacebookBridge.prototype=Object.create(PlatformBridge.prototype),FacebookBridge.prototype.constructor=FacebookBridge,FacebookBridge.prototype._init=function(){},FacebookBridge.prototype.createRequest=function(t,e,o){"function"==typeof e&&(o=e,e=void 0);try{this._methods[t](o,e)}catch(t){throw t}},FacebookBridge.prototype.validateMethod=function(t){return!0},FacebookBridge.prototype._methods={init:function(t,e){loadScript("https://connect.facebook.net/en_US/fbinstant.2.1.js",function(){FBInstant.initializeAsync().then(function(e){FBInstant.player.getDataAsync(["gamee"]).then(function(e){var o=e.gamee||null;t({saveState:o,replayData:null,sound:!0})})},function(t){throw t})})},gameLoadingProgress:function(t,e){FBInstant.setLoadingProgress(e.percentage)},gameReady:function(){FBInstant.setLoadingProgress(100),FBInstant.startGameAsync().then(function(){i.start({},function(){})})},updateScore:function(t,e){FBInstant.setScore(e.score)},gameOver:function(){FBInstant.endGameAsync().then(function(){i.start({},function(){})})},saveState:function(t,e){FBInstant.player.setDataAsync({gamee:e.state}).then(function(){})}}},function(t,e,o){"use strict";var n,r="function"==typeof Symbol&&"symbol"==typeof Symbol.iterator?function(t){return typeof t}:function(t){return t&&"function"==typeof Symbol&&t.constructor===Symbol&&t!==Symbol.prototype?"symbol":typeof t};n=function(){return this}();try{n=n||Function("return this")()||(0,eval)("this")}catch(t){"object"===("undefined"==typeof window?"undefined":r(window))&&(n=window)}t.exports=n},function(t,e,o){"use strict";var n=o(2);cr.plugins_.GAMEEConnector=function(t){this.runtime=t},function(){function Cnds(){}function Acts(){}function Exps(){}var t=cr.plugins_.GAMEEConnector.prototype,e=!1;t.Type=function(t){this.plugin=t,this.runtime=t.runtime},t.Type.prototype.onCreate=function(){},t.Instance=function(t){this.type=t,this.runtime=t.runtime};var o=t.Instance.prototype;o.onCreate=function(){this.pause=!1,this.sound=!1,this.start=[!1,""],this.saveState="{}",e||(e=!0,n.gamee.gameInit("FullScreen",{},["saveState"],this._initCallback.bind(this))),n.gamee.emitter.addEventListener("pause",function(t){this._data=0,this.runtime.trigger(cr.plugins_.GAMEEConnector.prototype.cnds.onInterruption,this)}.bind(this)),n.gamee.emitter.addEventListener("resume",function(t){this._data=1,this.runtime.trigger(cr.plugins_.GAMEEConnector.prototype.cnds.onInterruption,this)}.bind(this)),n.gamee.emitter.addEventListener("mute",function(t){this._data=0,this.runtime.trigger(cr.plugins_.GAMEEConnector.prototype.cnds.noSound,this)}.bind(this)),n.gamee.emitter.addEventListener("unmute",function(t){this._data=1,this.runtime.trigger(cr.plugins_.GAMEEConnector.prototype.cnds.noSound,this)}.bind(this)),n.gamee.emitter.addEventListener("start",function(t){this.start[0]=!0,this.runtime.trigger(cr.plugins_.GAMEEConnector.prototype.cnds.onGameStart,this)}.bind(this))},o._initCallback=function(t,e){"string"==typeof e.saveState&&(this.saveState=e.saveState),n.gamee.gameReady(),this.runtime.trigger(cr.plugins_.GAMEEConnector.prototype.cnds.onSaveStateReceive,this)},o.onDestroy=function(){},o.saveToJSON=function(){return{}},o.loadFromJSON=function(t){},o.draw=function(t){},o.drawGL=function(t){},o.getDebuggerValues=function(t){t.push({title:"My debugger section",properties:[]})},o.onDebugValueEdited=function(t,e,o){"My property"===e&&(this.myProperty=o)},Cnds.prototype.onInterruption=function(t){return this._data==t},Cnds.prototype.onSound=function(t){return this._data==t},Cnds.prototype.onGameStart=function(t){return this.start[0]=!0,!0},Cnds.prototype.onSaveStateReceive=function(){return!0},t.cnds=new Cnds,Acts.prototype.UpdateScore=function(t){n.gamee.updateScore(t)},Acts.prototype.GameOver=function(){n.gamee.gameOver()},Acts.prototype.SaveState=function(t){if("string"==typeof t)return void n.gamee.gameSave(t,!1)},t.acts=new Acts,Exps.prototype.MyExpression=function(t){t.set_int(1337)},Exps.prototype.SaveState=function(t){t.set_string(this.saveState)},t.exps=new Exps}()}])});
 ;
@@ -18984,6 +19377,404 @@ cr.behaviors.Bullet = function(runtime)
 }());
 ;
 ;
+cr.behaviors.DragnDrop = function(runtime)
+{
+	this.runtime = runtime;
+	var self = this;
+	if (!this.runtime.isDomFree)
+	{
+		jQuery(document).mousemove(
+			function(info) {
+				self.onMouseMove(info);
+			}
+		);
+		jQuery(document).mousedown(
+			function(info) {
+				self.onMouseDown(info);
+			}
+		);
+		jQuery(document).mouseup(
+			function(info) {
+				self.onMouseUp(info);
+			}
+		);
+	}
+	var elem = (this.runtime.fullscreen_mode > 0) ? document : this.runtime.canvas;
+	if (this.runtime.isDirectCanvas)
+		elem = window["Canvas"];
+	else if (this.runtime.isCocoonJs)
+		elem = window;
+	if (typeof PointerEvent !== "undefined")
+	{
+		elem.addEventListener("pointerdown",
+			function(info) {
+				self.onPointerStart(info);
+			},
+			false
+		);
+		elem.addEventListener("pointermove",
+			function(info) {
+				self.onPointerMove(info);
+			},
+			false
+		);
+		elem.addEventListener("pointerup",
+			function(info) {
+				self.onPointerEnd(info);
+			},
+			false
+		);
+		elem.addEventListener("pointercancel",
+			function(info) {
+				self.onPointerEnd(info);
+			},
+			false
+		);
+	}
+	else if (window.navigator["msPointerEnabled"])
+	{
+		elem.addEventListener("MSPointerDown",
+			function(info) {
+				self.onPointerStart(info);
+			},
+			false
+		);
+		elem.addEventListener("MSPointerMove",
+			function(info) {
+				self.onPointerMove(info);
+			},
+			false
+		);
+		elem.addEventListener("MSPointerUp",
+			function(info) {
+				self.onPointerEnd(info);
+			},
+			false
+		);
+		elem.addEventListener("MSPointerCancel",
+			function(info) {
+				self.onPointerEnd(info);
+			},
+			false
+		);
+	}
+	else
+	{
+		elem.addEventListener("touchstart",
+			function(info) {
+				self.onTouchStart(info);
+			},
+			false
+		);
+		elem.addEventListener("touchmove",
+			function(info) {
+				self.onTouchMove(info);
+			},
+			false
+		);
+		elem.addEventListener("touchend",
+			function(info) {
+				self.onTouchEnd(info);
+			},
+			false
+		);
+		elem.addEventListener("touchcancel",
+			function(info) {
+				self.onTouchEnd(info);
+			},
+			false
+		);
+	}
+};
+(function ()
+{
+	var behaviorProto = cr.behaviors.DragnDrop.prototype;
+	var dummyoffset = {left: 0, top: 0};
+	function GetDragDropBehavior(inst)
+	{
+		var i, len;
+		for (i = 0, len = inst.behavior_insts.length; i < len; i++)
+		{
+			if (inst.behavior_insts[i] instanceof behaviorProto.Instance)
+				return inst.behavior_insts[i];
+		}
+		return null;
+	};
+	behaviorProto.onMouseDown = function (info)
+	{
+		if (info.which !== 1)
+			return;		// not left mouse button
+		this.onInputDown("leftmouse", info.pageX, info.pageY);
+	};
+	behaviorProto.onMouseMove = function (info)
+	{
+		if (info.which !== 1)
+			return;		// not left mouse button
+		this.onInputMove("leftmouse", info.pageX, info.pageY);
+	};
+	behaviorProto.onMouseUp = function (info)
+	{
+		if (info.which !== 1)
+			return;		// not left mouse button
+		this.onInputUp("leftmouse");
+	};
+	behaviorProto.onTouchStart = function (info)
+	{
+		if (info.preventDefault && cr.isCanvasInputEvent(info))
+			info.preventDefault();
+		var i, len, t, id;
+		for (i = 0, len = info.changedTouches.length; i < len; i++)
+		{
+			t = info.changedTouches[i];
+			id = t.identifier;
+			this.onInputDown(id ? id.toString() : "<none>", t.pageX, t.pageY);
+		}
+	};
+	behaviorProto.onTouchMove = function (info)
+	{
+		if (info.preventDefault)
+			info.preventDefault();
+		var i, len, t, id;
+		for (i = 0, len = info.changedTouches.length; i < len; i++)
+		{
+			t = info.changedTouches[i];
+			id = t.identifier;
+			this.onInputMove(id ? id.toString() : "<none>", t.pageX, t.pageY);
+		}
+	};
+	behaviorProto.onTouchEnd = function (info)
+	{
+		if (info.preventDefault && cr.isCanvasInputEvent(info))
+			info.preventDefault();
+		var i, len, t, id;
+		for (i = 0, len = info.changedTouches.length; i < len; i++)
+		{
+			t = info.changedTouches[i];
+			id = t.identifier;
+			this.onInputUp(id ? id.toString() : "<none>");
+		}
+	};
+	behaviorProto.onPointerStart = function (info)
+	{
+		if (info["pointerType"] === info["MSPOINTER_TYPE_MOUSE"] || info["pointerType"] === "mouse")
+			return;
+		if (info.preventDefault && cr.isCanvasInputEvent(info))
+			info.preventDefault();
+		this.onInputDown(info["pointerId"].toString(), info.pageX, info.pageY);
+	};
+	behaviorProto.onPointerMove = function (info)
+	{
+		if (info["pointerType"] === info["MSPOINTER_TYPE_MOUSE"] || info["pointerType"] === "mouse")
+			return;
+		if (info.preventDefault)
+			info.preventDefault();
+		this.onInputMove(info["pointerId"].toString(), info.pageX, info.pageY);
+	};
+	behaviorProto.onPointerEnd = function (info)
+	{
+		if (info["pointerType"] === info["MSPOINTER_TYPE_MOUSE"] || info["pointerType"] === "mouse")
+			return;
+		if (info.preventDefault && cr.isCanvasInputEvent(info))
+			info.preventDefault();
+		this.onInputUp(info["pointerId"].toString());
+	};
+	behaviorProto.onInputDown = function (src, pageX, pageY)
+	{
+		var offset = this.runtime.isDomFree ? dummyoffset : jQuery(this.runtime.canvas).offset();
+		var x = pageX - offset.left;
+		var y = pageY - offset.top;
+		var lx, ly, topx, topy;
+		var arr = this.my_instances.valuesRef();
+		var i, len, b, inst, topmost = null;
+		for (i = 0, len = arr.length; i < len; i++)
+		{
+			inst = arr[i];
+			b = GetDragDropBehavior(inst);
+			if (!b.enabled || b.dragging)
+				continue;		// don't consider disabled or already-dragging instances
+			lx = inst.layer.canvasToLayer(x, y, true);
+			ly = inst.layer.canvasToLayer(x, y, false);
+			inst.update_bbox();
+			if (!inst.contains_pt(lx, ly))
+				continue;		// don't consider instances not over this point
+			if (!topmost)
+			{
+				topmost = inst;
+				topx = lx;
+				topy = ly;
+				continue;
+			}
+			if (inst.layer.index > topmost.layer.index)
+			{
+				topmost = inst;
+				topx = lx;
+				topy = ly;
+				continue;
+			}
+			if (inst.layer.index === topmost.layer.index && inst.get_zindex() > topmost.get_zindex())
+			{
+				topmost = inst;
+				topx = lx;
+				topy = ly;
+				continue;
+			}
+		}
+		if (topmost)
+			GetDragDropBehavior(topmost).onDown(src, topx, topy);
+	};
+	behaviorProto.onInputMove = function (src, pageX, pageY)
+	{
+		var offset = this.runtime.isDomFree ? dummyoffset : jQuery(this.runtime.canvas).offset();
+		var x = pageX - offset.left;
+		var y = pageY - offset.top;
+		var lx, ly;
+		var arr = this.my_instances.valuesRef();
+		var i, len, b, inst;
+		for (i = 0, len = arr.length; i < len; i++)
+		{
+			inst = arr[i];
+			b = GetDragDropBehavior(inst);
+			if (!b.enabled || !b.dragging || (b.dragging && b.dragsource !== src))
+				continue;		// don't consider disabled, not-dragging, or dragging by other sources
+			lx = inst.layer.canvasToLayer(x, y, true);
+			ly = inst.layer.canvasToLayer(x, y, false);
+			b.onMove(lx, ly);
+		}
+	};
+	behaviorProto.onInputUp = function (src)
+	{
+		var arr = this.my_instances.valuesRef();
+		var i, len, b, inst;
+		for (i = 0, len = arr.length; i < len; i++)
+		{
+			inst = arr[i];
+			b = GetDragDropBehavior(inst);
+			if (b.dragging && b.dragsource === src)
+				b.onUp();
+		}
+	};
+	behaviorProto.Type = function(behavior, objtype)
+	{
+		this.behavior = behavior;
+		this.objtype = objtype;
+		this.runtime = behavior.runtime;
+	};
+	var behtypeProto = behaviorProto.Type.prototype;
+	behtypeProto.onCreate = function()
+	{
+	};
+	behaviorProto.Instance = function(type, inst)
+	{
+		this.type = type;
+		this.behavior = type.behavior;
+		this.inst = inst;				// associated object instance to modify
+		this.runtime = type.runtime;
+	};
+	var behinstProto = behaviorProto.Instance.prototype;
+	behinstProto.onCreate = function()
+	{
+		this.dragging = false;
+		this.dx = 0;
+		this.dy = 0;
+		this.dragsource = "<none>";
+		this.axes = this.properties[0];
+		this.enabled = (this.properties[1] !== 0);
+	};
+	behinstProto.saveToJSON = function ()
+	{
+		return { "enabled": this.enabled };
+	};
+	behinstProto.loadFromJSON = function (o)
+	{
+		this.enabled = o["enabled"];
+		this.dragging = false;
+	};
+	behinstProto.onDown = function(src, x, y)
+	{
+		this.dx = x - this.inst.x;
+		this.dy = y - this.inst.y;
+		this.dragging = true;
+		this.dragsource = src;
+		this.runtime.isInUserInputEvent = true;
+		this.runtime.trigger(cr.behaviors.DragnDrop.prototype.cnds.OnDragStart, this.inst);
+		this.runtime.isInUserInputEvent = false;
+	};
+	behinstProto.onMove = function(x, y)
+	{
+		var newx = x - this.dx;
+		var newy = y - this.dy;
+		if (this.axes === 0)		// both
+		{
+			if (this.inst.x !== newx || this.inst.y !== newy)
+			{
+				this.inst.x = newx;
+				this.inst.y = newy;
+				this.inst.set_bbox_changed();
+			}
+		}
+		else if (this.axes === 1)	// horizontal
+		{
+			if (this.inst.x !== newx)
+			{
+				this.inst.x = newx;
+				this.inst.set_bbox_changed();
+			}
+		}
+		else if (this.axes === 2)	// vertical
+		{
+			if (this.inst.y !== newy)
+			{
+				this.inst.y = newy;
+				this.inst.set_bbox_changed();
+			}
+		}
+	};
+	behinstProto.onUp = function()
+	{
+		this.dragging = false;
+		this.runtime.isInUserInputEvent = true;
+		this.runtime.trigger(cr.behaviors.DragnDrop.prototype.cnds.OnDrop, this.inst);
+		this.runtime.isInUserInputEvent = false;
+	};
+	behinstProto.tick = function ()
+	{
+	};
+	function Cnds() {};
+	Cnds.prototype.IsDragging = function ()
+	{
+		return this.dragging;
+	};
+	Cnds.prototype.OnDragStart = function ()
+	{
+		return true;
+	};
+	Cnds.prototype.OnDrop = function ()
+	{
+		return true;
+	};
+	Cnds.prototype.IsEnabled = function ()
+	{
+		return !!this.enabled;
+	};
+	behaviorProto.cnds = new Cnds();
+	function Acts() {};
+	Acts.prototype.SetEnabled = function (s)
+	{
+		this.enabled = (s !== 0);
+		if (!this.enabled)
+			this.dragging = false;
+	};
+	Acts.prototype.Drop = function ()
+	{
+		if (this.dragging)
+			this.onUp();
+	};
+	behaviorProto.acts = new Acts();
+	function Exps() {};
+	behaviorProto.exps = new Exps();
+}());
+;
+;
 cr.behaviors.Fade = function(runtime)
 {
 	this.runtime = runtime;
@@ -19343,6 +20134,377 @@ cr.behaviors.Pin = function(runtime)
 		ret.set_int(this.pinObject ? this.pinObject.uid : -1);
 	};
 	behaviorProto.exps = new Exps();
+}());
+;
+;
+cr.behaviors.Rex_MoveTo = function(runtime)
+{
+	this.runtime = runtime;
+};
+(function ()
+{
+	var behaviorProto = cr.behaviors.Rex_MoveTo.prototype;
+	behaviorProto.Type = function(behavior, objtype)
+	{
+		this.behavior = behavior;
+		this.objtype = objtype;
+		this.runtime = behavior.runtime;
+	};
+	var behtypeProto = behaviorProto.Type.prototype;
+	behtypeProto.onCreate = function()
+	{
+	};
+	behaviorProto.Instance = function(type, inst)
+	{
+		this.type = type;
+		this.behavior = type.behavior;
+		this.inst = inst;				// associated object instance to modify
+		this.runtime = type.runtime;
+	};
+	var behinstProto = behaviorProto.Instance.prototype;
+	behinstProto.onCreate = function()
+	{
+        this.enabled = (this.properties[0] === 1);
+        if (!this.recycled)
+        {
+            this.moveParams = {};
+        }
+        this.moveParams["max"] = this.properties[1];
+        this.moveParams["acc"] = this.properties[2];
+        this.moveParams["dec"] = this.properties[3];
+        this.soildStopEnable = (this.properties[4] === 1);
+        this.isContinueMode = (this.properties[5] === 1);
+        if (!this.recycled)
+        {
+            this.target = {"x":0 , "y":0, "a":0};
+        }
+        this.isMoving = false;
+        this.currentSpeed = 0;
+        this.remainDistance = 0;
+        this.remainDt = 0;
+        if (!this.recycled)
+        {
+            this.prePosition = {"x":0,"y":0};
+        }
+        this.prePosition["x"] = 0;
+        this.prePosition["y"] = 0;
+        this.movingAngleData = newPointData(this.movingAngleData);
+        this.movingAngleStartData = newPointData(this.movingAngleStartData);
+        this.lastTick = null;
+        this.isMyCall = false;
+	};
+    var newPointData = function (point)
+    {
+        if (point == null)
+            point = {};
+        point["x"] = 0;
+        point["y"] = 0;
+        point["a"] = -1;
+        return point;
+    };
+	behinstProto.tick = function ()
+	{
+	    this.remainDt = 0;
+        if ( (!this.enabled) || (!this.isMoving) )
+            return;
+		var dt = this.runtime.getDt(this.inst);
+		this.move(dt);
+	};
+	behinstProto.move = function (dt)
+	{
+        if (dt == 0)   // can not move if dt == 0
+            return;
+        if ((this.prePosition["x"] !== this.inst.x) || (this.prePosition["y"] !== this.inst.y))
+		    this.resetCurrentPosition();    // reset this.remainDistance
+        var isSlowDown = false;
+        if (this.moveParams["dec"] != 0)
+        {
+            var d = (this.currentSpeed * this.currentSpeed)/(2*this.moveParams["dec"]); // (v*v)/(2*a)
+            isSlowDown = (d >= this.remainDistance);
+        }
+        var acc = (isSlowDown)? (-this.moveParams["dec"]):this.moveParams["acc"];
+        if (acc != 0)
+        {
+            this.setCurrentSpeed( this.currentSpeed + (acc * dt) );
+        }
+        var distance = this.currentSpeed * dt;
+        this.remainDistance -= distance;
+        var isHitTarget = false;
+        var angle = this.target["a"];
+        var ux = Math.cos(angle);
+        var uy = Math.sin(angle);
+        if ( (this.remainDistance <= 0) || (this.currentSpeed <= 0) )
+        {
+            isHitTarget = true;
+            this.inst.x = this.target["x"];
+            this.inst.y = this.target["y"];
+            if (this.currentSpeed > 0)
+                this.remainDt = (-this.remainDistance)/this.currentSpeed;
+            this.getMovingAngle();
+            this.setCurrentSpeed(0);
+        }
+        else
+        {
+            var angle = this.target["a"];
+            this.inst.x += (distance * ux);
+            this.inst.y += (distance * uy);
+        }
+		this.inst.set_bbox_changed();
+        var isSolidStop = false;
+        if (this.soildStopEnable)
+        {
+		    var collobj = this.runtime.testOverlapSolid(this.inst);
+		    if (collobj)
+		    {
+			    this.runtime.registerCollision(this.inst, collobj);
+			    this.runtime.pushOutSolid(this.inst, -ux, -uy, Math.max(distance, 50));
+                isSolidStop = true;
+		    }
+        }
+		this.prePosition["x"] = this.inst.x;
+		this.prePosition["y"] = this.inst.y;
+        if (isSolidStop)
+        {
+            this.isMoving = false;  // stop
+            this.isMyCall = true;
+            this.runtime.trigger(cr.behaviors.Rex_MoveTo.prototype.cnds.OnSolidStop, this.inst);
+            this.isMyCall = false;
+        }
+        else if (isHitTarget)
+        {
+            this.isMoving = false;  // stop
+            this.isMyCall = true;
+            this.runtime.trigger(cr.behaviors.Rex_MoveTo.prototype.cnds.OnHitTarget, this.inst);
+            this.isMyCall = false;
+        }
+	};
+	behinstProto.tick2 = function ()
+	{
+        this.movingAngleData["x"] = this.inst.x;
+		this.movingAngleData["y"] = this.inst.y;
+    };
+	behinstProto.setCurrentSpeed = function(speed)
+	{
+        if (speed != null)
+        {
+            this.currentSpeed = (speed > this.moveParams["max"])?
+                                 this.moveParams["max"]: speed;
+        }
+        else if (this.moveParams["acc"]==0)
+        {
+            this.currentSpeed = this.moveParams["max"];
+        }
+	};
+	behinstProto.resetCurrentPosition = function ()
+	{
+        var dx = this.target["x"] - this.inst.x;
+        var dy = this.target["y"] - this.inst.y;
+        this.target["a"] = Math.atan2(dy, dx);
+        this.remainDistance = Math.sqrt( (dx*dx) + (dy*dy) );
+		this.prePosition["x"] = this.inst.x;
+		this.prePosition["y"] = this.inst.y;
+	};
+	behinstProto.setTargetPos = function (_x, _y)
+	{
+		this.target["x"] = _x;
+        this.target["y"] = _y;
+        this.setCurrentSpeed(null);
+        this.resetCurrentPosition();
+		this.movingAngleData["x"] = this.inst.x;
+		this.movingAngleData["y"] = this.inst.y;
+        this.isMoving = true;
+        this.movingAngleStartData["x"] = this.inst.x;
+        this.movingAngleStartData["y"] = this.inst.y;
+        this.movingAngleStartData["a"] = cr.to_clamped_degrees(cr.angleTo(this.inst.x, this.inst.y, _x, _y));
+        if (this.isContinueMode)
+            this.move(this.remainDt);
+	};
+	behinstProto.isTickChanged = function ()
+	{
+	    var curTick = this.runtime.tickcount;
+		var tickChanged = (this.lastTick != curTick);
+        this.lastTick = curTick;
+		return tickChanged;
+	};
+ 	behinstProto.getMovingAngle = function (ret)
+	{
+        if (this.isTickChanged())
+        {
+            var dx = this.inst.x - this.movingAngleData["x"];
+            var dy = this.inst.y - this.movingAngleData["y"];
+            if ((dx!=0) || (dy!=0))
+                this.movingAngleData["a"] = cr.to_clamped_degrees(Math.atan2(dy,dx));
+        }
+		return this.movingAngleData["a"];
+	};
+    function clone(obj)
+	{
+        if (null == obj || "object" != typeof obj)
+		    return obj;
+        var result = obj.constructor();
+        for (var attr in obj)
+		{
+            if (obj.hasOwnProperty(attr))
+			    result[attr] = obj[attr];
+        }
+        return result;
+    };
+	behinstProto.saveToJSON = function ()
+	{
+		return { "en": this.enabled,
+		         "v": clone(this.moveParams),
+                 "t": clone(this.target),
+                 "is_m": this.isMoving,
+                 "c_spd" : this.currentSpeed,
+                 "rd" : this.remainDistance,
+                 "pp": clone(this.prePosition),
+                 "ma": clone(this.movingAngleData),
+                 "ms": clone(this.movingAngleStartData),
+                 "lt": this.lastTick,
+               };
+	};
+	behinstProto.loadFromJSON = function (o)
+	{
+		this.enabled = o["en"];
+		this.moveParams = o["v"];
+		this.target = o["t"];
+		this.isMoving = o["is_m"];
+		this.currentSpeed = o["c_spd"];
+		this.remainDistance = o["rd"];
+        this.prePosition = o["pp"];
+        this.movingAngleData = o["ma"];
+        this.movingAngleStartData = o["ms"];
+        this.lastTick = o["lt"];
+	};
+	function Cnds() {};
+	behaviorProto.cnds = new Cnds();
+	Cnds.prototype.OnHitTarget = function ()
+	{
+		return (this.isMyCall);
+	};
+	Cnds.prototype.CompareSpeed = function (cmp, s)
+	{
+		return cr.do_cmp(this.currentSpeed, cmp, s);
+	};
+    Cnds.prototype.OnMoving = function ()  // deprecated
+	{
+		return false;
+	};
+	Cnds.prototype.IsMoving = function ()
+	{
+		return (this.enabled && this.isMoving);
+	};
+	Cnds.prototype.CompareMovingAngle = function (cmp, s)
+	{
+        var angle = this.getMovingAngle();
+        if (angle != (-1))
+		    return cr.do_cmp(this.getMovingAngle(), cmp, s);
+        else
+            return false;
+	};
+	Cnds.prototype.OnSolidStop = function ()
+	{
+		return this.isMyCall;
+	};
+	function Acts() {};
+	behaviorProto.acts = new Acts();
+	Acts.prototype.SetEnabled = function (en)
+	{
+		this.enabled = (en === 1);
+	};
+	Acts.prototype.SetMaxSpeed = function (s)
+	{
+		this.moveParams["max"] = s;
+        this.setCurrentSpeed(null);
+	};
+	Acts.prototype.SetAcceleration = function (a)
+	{
+		this.moveParams["acc"] = a;
+        this.setCurrentSpeed(null);
+	};
+	Acts.prototype.SetDeceleration = function (a)
+	{
+		this.moveParams["dec"] = a;
+	};
+	Acts.prototype.SetTargetPos = function (x, y)
+	{
+        this.setTargetPos(x, y)
+	};
+	Acts.prototype.SetCurrentSpeed = function (s)
+	{
+        this.setCurrentSpeed(s);
+	};
+ 	Acts.prototype.SetTargetPosOnObject = function (objtype)
+	{
+		if (!objtype)
+			return;
+		var inst = objtype.getFirstPicked();
+        if (inst != null)
+            this.setTargetPos(inst.x, inst.y);
+	};
+ 	Acts.prototype.SetTargetPosByDeltaXY = function (dx, dy)
+	{
+        this.setTargetPos(this.inst.x + dx, this.inst.y + dy);
+	};
+ 	Acts.prototype.SetTargetPosByDistanceAngle = function (distance, angle)
+	{
+        var a = cr.to_clamped_radians(angle);
+        var dx = distance*Math.cos(a);
+        var dy = distance*Math.sin(a);
+        this.setTargetPos(this.inst.x + dx, this.inst.y + dy);
+	};
+ 	Acts.prototype.Stop = function ()
+	{
+        this.isMoving = false;
+	};
+ 	Acts.prototype.SetTargetPosOnUID = function (uid)
+	{
+		var inst = this.runtime.getObjectByUID(uid);
+        if (inst != null)
+            this.setTargetPos(inst.x, inst.y);
+	};
+ 	Acts.prototype.SetStopBySolid = function (en)
+	{
+		this.soildStopEnable = (en === 1);
+	};
+	function Exps() {};
+	behaviorProto.exps = new Exps();
+	Exps.prototype.Activated = function (ret)
+	{
+		ret.set_int((this.enabled)? 1:0);
+	};
+	Exps.prototype.Speed = function (ret)
+	{
+		ret.set_float(this.currentSpeed);
+	};
+	Exps.prototype.MaxSpeed = function (ret)
+	{
+		ret.set_float(this.moveParams["max"]);
+	};
+	Exps.prototype.Acc = function (ret)
+	{
+		ret.set_float(this.moveParams["acc"]);
+	};
+ 	Exps.prototype.Dec = function (ret)
+	{
+		ret.set_float(this.moveParams["dec"]);
+	};
+	Exps.prototype.TargetX = function (ret)
+	{
+		ret.set_float(this.target["x"]);
+	};
+ 	Exps.prototype.TargetY = function (ret)
+	{
+		ret.set_float(this.target["y"]);
+	};
+ 	Exps.prototype.MovingAngle = function (ret)
+	{
+		ret.set_float(this.getMovingAngle());
+	};
+ 	Exps.prototype.MovingAngleStart = function (ret)
+	{
+		ret.set_float(this.movingAngleStartData["a"]);
+	};
 }());
 ;
 ;
@@ -21328,22 +22490,25 @@ cr.behaviors.scrollto = function(runtime)
 	behaviorProto.acts = new Acts();
 }());
 cr.getObjectRefTable = function () { return [
+	cr.plugins_.Facebook,
 	cr.plugins_.GAMEEConnector,
 	cr.plugins_.Keyboard,
 	cr.plugins_.Sprite,
 	cr.plugins_.Text,
-	cr.plugins_.TiledBg,
 	cr.plugins_.Touch,
+	cr.plugins_.TiledBg,
 	cr.behaviors.Bullet,
 	cr.behaviors.bound,
 	cr.behaviors.Rex_RotateTo,
 	cr.behaviors.lunarray_LiteTween,
+	cr.behaviors.Pin,
 	cr.behaviors.scrollto,
 	cr.behaviors.Fade,
-	cr.behaviors.Pin,
 	cr.behaviors.Rotate,
 	cr.behaviors.Rex_pin2imgpt,
 	cr.behaviors.Sin,
+	cr.behaviors.DragnDrop,
+	cr.behaviors.Rex_MoveTo,
 	cr.system_object.prototype.cnds.OnLayoutStart,
 	cr.plugins_.Sprite.prototype.acts.Destroy,
 	cr.behaviors.Pin.prototype.acts.Pin,
@@ -21355,12 +22520,12 @@ cr.getObjectRefTable = function () { return [
 	cr.system_object.prototype.exps.lerp,
 	cr.plugins_.Sprite.prototype.exps.X,
 	cr.plugins_.Sprite.prototype.exps.Y,
-	cr.plugins_.Sprite.prototype.acts.SetVisible,
 	cr.plugins_.Touch.prototype.cnds.OnTouchStart,
 	cr.plugins_.Touch.prototype.exps.X,
 	cr.system_object.prototype.exps.windowwidth,
 	cr.plugins_.Touch.prototype.exps.Y,
 	cr.system_object.prototype.exps.windowheight,
+	cr.plugins_.Sprite.prototype.acts.SetVisible,
 	cr.plugins_.Touch.prototype.cnds.IsInTouch,
 	cr.plugins_.Sprite.prototype.acts.SetAngle,
 	cr.system_object.prototype.exps.angle,
@@ -21401,11 +22566,6 @@ cr.getObjectRefTable = function () { return [
 	cr.plugins_.Sprite.prototype.cnds.CompareWidth,
 	cr.plugins_.Sprite.prototype.cnds.OnDestroyed,
 	cr.plugins_.Sprite.prototype.acts.SetPosToObject,
-	cr.plugins_.GAMEEConnector.prototype.acts.UpdateScore,
-	cr.plugins_.GAMEEConnector.prototype.cnds.onInterruption,
-	cr.system_object.prototype.acts.SetTimescale,
-	cr.plugins_.GAMEEConnector.prototype.cnds.onGameStart,
-	cr.system_object.prototype.acts.RestartLayout,
 	cr.behaviors.Rex_pin2imgpt.prototype.acts.Pin,
 	cr.plugins_.Sprite.prototype.acts.SetCollisions,
 	cr.system_object.prototype.cnds.Every,
@@ -21417,5 +22577,20 @@ cr.getObjectRefTable = function () { return [
 	cr.plugins_.Sprite.prototype.acts.MoveToBottom,
 	cr.plugins_.Text.prototype.acts.SetText,
 	cr.plugins_.Keyboard.prototype.cnds.OnKey,
-	cr.system_object.prototype.acts.SetObjectTimescale
+	cr.system_object.prototype.acts.SetObjectTimescale,
+	cr.system_object.prototype.exps.round,
+	cr.system_object.prototype.exps.abs,
+	cr.plugins_.Sprite.prototype.acts.MoveForward,
+	cr.plugins_.Sprite.prototype.cnds.CompareX,
+	cr.plugins_.Sprite.prototype.acts.SetX,
+	cr.behaviors.Rex_MoveTo.prototype.acts.SetTargetPos,
+	cr.plugins_.Touch.prototype.cnds.IsTouchingObject,
+	cr.plugins_.Sprite.prototype.acts.SetAnimFrame,
+	cr.plugins_.Touch.prototype.cnds.OnTapGestureObject,
+	cr.system_object.prototype.acts.GoToLayout,
+	cr.plugins_.GAMEEConnector.prototype.acts.UpdateScore,
+	cr.plugins_.GAMEEConnector.prototype.cnds.onInterruption,
+	cr.system_object.prototype.acts.SetTimescale,
+	cr.plugins_.GAMEEConnector.prototype.cnds.onGameStart,
+	cr.system_object.prototype.acts.RestartLayout
 ];};
