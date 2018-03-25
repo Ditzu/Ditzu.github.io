@@ -3548,6 +3548,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		this.fps = 0;
 		this.last_fps_time = 0;
 		this.tickcount = 0;
+		this.tickcount_nosave = 0;	// same as tickcount but never saved/loaded
 		this.execcount = 0;
 		this.framecount = 0;        // for fps
 		this.objectcount = 0;
@@ -5054,6 +5055,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		if (!this.hit_breakpoint)
 		{
 			this.tickcount++;
+			this.tickcount_nosave++;
 			this.execcount++;
 			this.framecount++;
 		}
@@ -15261,6 +15263,23 @@ cr.shaders["swirl"] = {src: ["#ifdef GL_FRAGMENT_PRECISION_HIGH",
 	preservesOpaqueness: false,
 	animated: false,
 	parameters: [["radius", 0, 1], ["angle", 0, 1]] }
+cr.shaders["tint"] = {src: ["varying mediump vec2 vTex;",
+"uniform lowp sampler2D samplerFront;",
+"uniform lowp float red;",
+"uniform lowp float green;",
+"uniform lowp float blue;",
+"void main(void)",
+"{",
+"lowp vec4 front = texture2D(samplerFront, vTex);",
+"gl_FragColor = front * vec4(red, green, blue, 1.0);",
+"}"
+].join("\n"),
+	extendBoxHorizontal: 0,
+	extendBoxVertical: 0,
+	crossSampling: false,
+	preservesOpaqueness: true,
+	animated: false,
+	parameters: [["red", 0, 1], ["green", 0, 1], ["blue", 0, 1]] }
 ;
 ;
 cr.plugins_.Facebook = function(runtime)
@@ -15335,6 +15354,7 @@ cr.plugins_.Facebook = function(runtime)
 			if (pname.substr(pname.length - 1) !== '/')
 				pname = pname.substr(0, pname.lastIndexOf('/') + 1);
 			FB.init({
+			  "version"    : "v2.11",
 			  "appId"      : fbAppID,
 			  "channelURL" : '//' + location.hostname + pname + 'channel.html',
 			  "status"     : true,
@@ -15379,7 +15399,7 @@ cr.plugins_.Facebook = function(runtime)
 			(function(d){
 				var js, id = 'facebook-jssdk'; if (d.getElementById(id)) {return;}
 				js = d.createElement('script'); js.id = id; js.async = true;
-				js.src = "//connect.facebook.net/en_US/all.js";
+				js.src = "//connect.facebook.net/en_US/sdk.js";
 				d.getElementsByTagName('head')[0].appendChild(js);
 			}(document));
 		}
@@ -18525,8 +18545,15 @@ cr.plugins_.Touch = function(runtime)
 			return this.orient_gamma;
 	};
 	var noop_func = function(){};
+	function isCompatibilityMouseEvent(e)
+	{
+		return (e["sourceCapabilities"] && e["sourceCapabilities"]["firesTouchEvents"]) ||
+				(e.originalEvent && e.originalEvent["sourceCapabilities"] && e.originalEvent["sourceCapabilities"]["firesTouchEvents"]);
+	};
 	instanceProto.onMouseDown = function(info)
 	{
+		if (isCompatibilityMouseEvent(info))
+			return;
 		var t = { pageX: info.pageX, pageY: info.pageY, "identifier": 0 };
 		var fakeinfo = { changedTouches: [t] };
 		this.onTouchStart(fakeinfo);
@@ -18535,6 +18562,8 @@ cr.plugins_.Touch = function(runtime)
 	instanceProto.onMouseMove = function(info)
 	{
 		if (!this.mouseDown)
+			return;
+		if (isCompatibilityMouseEvent(info))
 			return;
 		var t = { pageX: info.pageX, pageY: info.pageY, "identifier": 0 };
 		var fakeinfo = { changedTouches: [t] };
@@ -18545,6 +18574,8 @@ cr.plugins_.Touch = function(runtime)
 		if (info.preventDefault && this.runtime.had_a_click && !this.runtime.isMobile)
 			info.preventDefault();
 		this.runtime.had_a_click = true;
+		if (isCompatibilityMouseEvent(info))
+			return;
 		var t = { pageX: info.pageX, pageY: info.pageY, "identifier": 0 };
 		var fakeinfo = { changedTouches: [t] };
 		this.onTouchEnd(fakeinfo);
@@ -22490,13 +22521,13 @@ cr.behaviors.scrollto = function(runtime)
 	behaviorProto.acts = new Acts();
 }());
 cr.getObjectRefTable = function () { return [
-	cr.plugins_.Facebook,
 	cr.plugins_.GAMEEConnector,
+	cr.plugins_.Facebook,
 	cr.plugins_.Keyboard,
 	cr.plugins_.Sprite,
 	cr.plugins_.Text,
-	cr.plugins_.Touch,
 	cr.plugins_.TiledBg,
+	cr.plugins_.Touch,
 	cr.behaviors.Bullet,
 	cr.behaviors.bound,
 	cr.behaviors.Rex_RotateTo,
@@ -22513,8 +22544,12 @@ cr.getObjectRefTable = function () { return [
 	cr.plugins_.Sprite.prototype.acts.Destroy,
 	cr.behaviors.Pin.prototype.acts.Pin,
 	cr.system_object.prototype.acts.SetVar,
-	cr.system_object.prototype.cnds.IsGroupActive,
 	cr.system_object.prototype.cnds.EveryTick,
+	cr.plugins_.Text.prototype.acts.SetText,
+	cr.behaviors.Bullet.prototype.exps.Speed,
+	cr.plugins_.Touch.prototype.cnds.OnTapGestureObject,
+	cr.system_object.prototype.acts.GoToLayout,
+	cr.system_object.prototype.cnds.IsGroupActive,
 	cr.plugins_.Sprite.prototype.cnds.IsOnScreen,
 	cr.plugins_.Sprite.prototype.acts.SetPos,
 	cr.system_object.prototype.exps.lerp,
@@ -22556,12 +22591,10 @@ cr.getObjectRefTable = function () { return [
 	cr.plugins_.Sprite.prototype.exps.ImagePointX,
 	cr.plugins_.Sprite.prototype.exps.ImagePointY,
 	cr.system_object.prototype.cnds.CompareVar,
-	cr.behaviors.Bullet.prototype.acts.SetSpeed,
-	cr.behaviors.lunarray_LiteTween.prototype.acts.Start,
-	cr.plugins_.Sprite.prototype.acts.SetAnim,
-	cr.behaviors.lunarray_LiteTween.prototype.acts.Reverse,
 	cr.system_object.prototype.acts.AddVar,
+	cr.behaviors.Bullet.prototype.acts.SetSpeed,
 	cr.plugins_.Text.prototype.acts.SetPos,
+	cr.behaviors.lunarray_LiteTween.prototype.acts.Start,
 	cr.plugins_.Text.prototype.acts.SetVisible,
 	cr.plugins_.Sprite.prototype.cnds.CompareWidth,
 	cr.plugins_.Sprite.prototype.cnds.OnDestroyed,
@@ -22573,11 +22606,14 @@ cr.getObjectRefTable = function () { return [
 	cr.system_object.prototype.exps.random,
 	cr.system_object.prototype.acts.SubVar,
 	cr.plugins_.Sprite.prototype.cnds.IsAnimPlaying,
-	cr.behaviors.Bullet.prototype.exps.Speed,
 	cr.plugins_.Sprite.prototype.acts.MoveToBottom,
-	cr.plugins_.Text.prototype.acts.SetText,
+	cr.plugins_.Sprite.prototype.acts.SetAnim,
 	cr.plugins_.Keyboard.prototype.cnds.OnKey,
 	cr.system_object.prototype.acts.SetObjectTimescale,
+	cr.behaviors.lunarray_LiteTween.prototype.acts.Reverse,
+	cr.plugins_.TiledBg.prototype.acts.SetEffectParam,
+	cr.plugins_.TiledBg.prototype.acts.SetOpacity,
+	cr.system_object.prototype.acts.SetGroupActive,
 	cr.system_object.prototype.exps.round,
 	cr.system_object.prototype.exps.abs,
 	cr.plugins_.Sprite.prototype.acts.MoveForward,
@@ -22586,8 +22622,6 @@ cr.getObjectRefTable = function () { return [
 	cr.behaviors.Rex_MoveTo.prototype.acts.SetTargetPos,
 	cr.plugins_.Touch.prototype.cnds.IsTouchingObject,
 	cr.plugins_.Sprite.prototype.acts.SetAnimFrame,
-	cr.plugins_.Touch.prototype.cnds.OnTapGestureObject,
-	cr.system_object.prototype.acts.GoToLayout,
 	cr.plugins_.GAMEEConnector.prototype.acts.UpdateScore,
 	cr.plugins_.GAMEEConnector.prototype.cnds.onInterruption,
 	cr.system_object.prototype.acts.SetTimescale,
