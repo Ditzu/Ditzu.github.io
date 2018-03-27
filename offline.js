@@ -1,5 +1,5 @@
 ﻿{
-	"version": 1522138238,
+	"version": 1522151208,
 	"fileList": [
 		"data.js",
 		"c2runtime.js",
@@ -15,13 +15,10 @@
 		"images/tiledbackground2.png",
 		"images/spawn-sheet0.png",
 		"images/explosion_-sheet0.png",
-		"images/explosion_-sheet1.png",
-		"images/explosion_-sheet2.png",
 		"images/coin-sheet0.png",
 		"images/indicator_missile_1-sheet0.png",
 		"images/indicator_coins-sheet0.png",
 		"images/tiledbackground3.png",
-		"images/tiledbackground4.png",
 		"images/shild-sheet0.png",
 		"images/shild-sheet1.png",
 		"images/shild_shape-sheet0.png",
@@ -48,6 +45,7 @@
 		"images/bg-sheet0.png",
 		"images/ready_button-sheet0.png",
 		"images/back_menu-sheet0.png",
+		"images/tiledbackground5.png",
 		"images/rocket_tail.png",
 		"images/superrocket_tail.png",
 		"icon-16.png",

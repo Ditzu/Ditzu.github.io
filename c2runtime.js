@@ -22974,6 +22974,7 @@ cr.getObjectRefTable = function () { return [
 	cr.plugins_.Sprite.prototype.cnds.OnCollision,
 	cr.plugins_.GAMEEConnector.prototype.acts.GameOver,
 	cr.plugins_.Sprite.prototype.cnds.CompareFrame,
+	cr.plugins_.Sprite.prototype.acts.StartAnim,
 	cr.plugins_.Sprite.prototype.cnds.PickByUID,
 	cr.behaviors.Rex_RotateTo.prototype.acts.SetTargetAngleToPos,
 	cr.system_object.prototype.cnds.CompareVar,
