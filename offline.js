@@ -1,5 +1,5 @@
 ﻿{
-	"version": 1522352303,
+	"version": 1522353152,
 	"fileList": [
 		"data.js",
 		"c2runtime.js",
@@ -53,6 +53,7 @@
 		"images/danger-sheet0.png",
 		"images/danger_collision-sheet0.png",
 		"images/profile_picture-sheet0.png",
+		"images/facebook_profile_mask-sheet0.png",
 		"icon-16.png",
 		"icon-32.png",
 		"icon-114.png",
