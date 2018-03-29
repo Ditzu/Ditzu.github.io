@@ -23417,5 +23417,6 @@ cr.getObjectRefTable = function () { return [
 	cr.plugins_.Sprite.prototype.acts.LoadURL,
 	cr.plugins_.Facebook.prototype.exps.UserID,
 	cr.plugins_.Facebook.prototype.acts.RequestHiscores,
-	cr.plugins_.Facebook.prototype.exps.FullName
+	cr.plugins_.Facebook.prototype.exps.FullName,
+	cr.plugins_.Sprite.prototype.acts.SetSize
 ];};
