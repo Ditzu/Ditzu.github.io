@@ -23291,10 +23291,10 @@ cr.getObjectRefTable = function () { return [
 	cr.plugins_.GAMEEConnector,
 	cr.plugins_.Facebook,
 	cr.plugins_.Keyboard,
-	cr.plugins_.Particles,
 	cr.plugins_.LocalStorage,
-	cr.plugins_.Text,
+	cr.plugins_.Particles,
 	cr.plugins_.Sprite,
+	cr.plugins_.Text,
 	cr.plugins_.Touch,
 	cr.plugins_.TiledBg,
 	cr.behaviors.Bullet,
@@ -23314,7 +23314,6 @@ cr.getObjectRefTable = function () { return [
 	cr.system_object.prototype.acts.SetVar,
 	cr.system_object.prototype.cnds.EveryTick,
 	cr.plugins_.Text.prototype.acts.SetText,
-	cr.plugins_.Facebook.prototype.acts.RequestHiscores,
 	cr.plugins_.Touch.prototype.cnds.OnTapGestureObject,
 	cr.system_object.prototype.acts.Wait,
 	cr.system_object.prototype.acts.GoToLayout,
@@ -23413,5 +23412,9 @@ cr.getObjectRefTable = function () { return [
 	cr.plugins_.GAMEEConnector.prototype.cnds.onInterruption,
 	cr.system_object.prototype.acts.SetTimescale,
 	cr.plugins_.GAMEEConnector.prototype.cnds.onGameStart,
-	cr.system_object.prototype.acts.RestartLayout
+	cr.system_object.prototype.acts.RestartLayout,
+	cr.plugins_.Facebook.prototype.cnds.OnLogIn,
+	cr.plugins_.Sprite.prototype.acts.LoadURL,
+	cr.plugins_.Facebook.prototype.exps.UserID,
+	cr.plugins_.Facebook.prototype.acts.RequestHiscores
 ];};
