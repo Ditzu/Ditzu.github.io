@@ -1,5 +1,5 @@
 ﻿{
-	"version": 1522353364,
+	"version": 1522538595,
 	"fileList": [
 		"data.js",
 		"c2runtime.js",
@@ -29,7 +29,6 @@
 		"images/streak_loading-sheet0.png",
 		"images/mine-sheet0.png",
 		"images/mine-sheet1.png",
-		"images/mine_ray-sheet0.png",
 		"images/super_missile-sheet0.png",
 		"images/indicator_super_missile-sheet0.png",
 		"images/ice_effect_plane-sheet0.png",
@@ -52,8 +51,6 @@
 		"images/facebook2-sheet0.png",
 		"images/danger-sheet0.png",
 		"images/danger_collision-sheet0.png",
-		"images/profile_picture-sheet0.png",
-		"images/facebook_profile_mask-sheet0.png",
 		"icon-16.png",
 		"icon-32.png",
 		"icon-114.png",
