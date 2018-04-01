@@ -1,5 +1,5 @@
 ﻿CACHE MANIFEST
-#1522581664
+#1522595205
 data.js
 c2runtime.js
 jquery-2.1.1.min.js
@@ -45,19 +45,25 @@ images/tiledbackground5.png
 images/rocket_tail.png
 images/superrocket_tail.png
 images/plain_tail.png
-images/facebook2-sheet0.png
 images/danger-sheet0.png
 images/danger_collision-sheet0.png
 images/enemy_plane-sheet0.png
 images/turet-sheet0.png
 images/bullet-sheet0.png
 images/indicator_enemy_plane-sheet0.png
+media/background2_music.ogg
+media/coin.ogg
+media/explosion.ogg
+media/gun.ogg
+media/rocketflyby.ogg
+media/engine_v2.ogg
+media/boost.ogg
+media/lose.ogg
 icon-16.png
 icon-32.png
 icon-114.png
 icon-128.png
 icon-256.png
 loading-logo.png
-channel.html
 NETWORK:
 *
