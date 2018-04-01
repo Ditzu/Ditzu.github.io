@@ -15230,39 +15230,6 @@ cr.shaders["hsladjust"] = {src: ["varying mediump vec2 vTex;",
 	preservesOpaqueness: true,
 	animated: false,
 	parameters: [["huerotate", 0, 1], ["satadjust", 0, 1], ["lumadjust", 0, 1]] }
-cr.shaders["swirl"] = {src: ["#ifdef GL_FRAGMENT_PRECISION_HIGH",
-"#define highmedp highp",
-"#else",
-"#define highmedp mediump",
-"#endif",
-"varying mediump vec2 vTex;",
-"uniform lowp sampler2D samplerFront;",
-"uniform mediump float radius;",
-"uniform mediump float angle;",
-"void main(void)",
-"{",
-"mediump vec2 center = vec2(0.5, 0.5);",
-"highmedp vec2 tex = vTex;",
-"highmedp float dist = distance(center, vTex);",
-"tex -= center;",
-"if (dist < radius)",
-"{",
-"highmedp float percent = (radius - dist) / radius;",
-"highmedp float theta = percent * percent * angle * 8.0;",
-"highmedp float s = sin(theta);",
-"highmedp float c = cos(theta);",
-"tex = vec2(dot(tex, vec2(c, -s)), dot(tex, vec2(s, c)));",
-"}",
-"tex += center;",
-"gl_FragColor = texture2D(samplerFront, tex);",
-"}"
-].join("\n"),
-	extendBoxHorizontal: 0,
-	extendBoxVertical: 0,
-	crossSampling: false,
-	preservesOpaqueness: false,
-	animated: false,
-	parameters: [["radius", 0, 1], ["angle", 0, 1]] }
 cr.shaders["tint"] = {src: ["varying mediump vec2 vTex;",
 "uniform lowp sampler2D samplerFront;",
 "uniform lowp float red;",
@@ -22191,6 +22158,45 @@ cr.behaviors.bound = function(runtime)
 			this.inst.set_bbox_changed();
 	};
 }());
+;
+;
+cr.behaviors.destroy = function(runtime)
+{
+	this.runtime = runtime;
+};
+(function ()
+{
+	var behaviorProto = cr.behaviors.destroy.prototype;
+	behaviorProto.Type = function(behavior, objtype)
+	{
+		this.behavior = behavior;
+		this.objtype = objtype;
+		this.runtime = behavior.runtime;
+	};
+	var behtypeProto = behaviorProto.Type.prototype;
+	behtypeProto.onCreate = function()
+	{
+	};
+	behaviorProto.Instance = function(type, inst)
+	{
+		this.type = type;
+		this.behavior = type.behavior;
+		this.inst = inst;				// associated object instance to modify
+		this.runtime = type.runtime;
+	};
+	var behinstProto = behaviorProto.Instance.prototype;
+	behinstProto.onCreate = function()
+	{
+	};
+	behinstProto.tick = function ()
+	{
+		this.inst.update_bbox();
+		var bbox = this.inst.bbox;
+		var layout = this.inst.layer.layout;
+		if (bbox.right < 0 || bbox.bottom < 0 || bbox.left > layout.width || bbox.top > layout.height)
+			this.runtime.DestroyInstance(this.inst);
+	};
+}());
 var easeOutBounceArray = [];
 var easeInElasticArray = [];
 var easeOutElasticArray = [];
@@ -23288,15 +23294,15 @@ cr.behaviors.scrollto = function(runtime)
 	behaviorProto.acts = new Acts();
 }());
 cr.getObjectRefTable = function () { return [
-	cr.plugins_.Facebook,
 	cr.plugins_.GAMEEConnector,
+	cr.plugins_.Facebook,
 	cr.plugins_.LocalStorage,
-	cr.plugins_.Keyboard,
 	cr.plugins_.Particles,
-	cr.plugins_.Sprite,
+	cr.plugins_.Keyboard,
 	cr.plugins_.Text,
 	cr.plugins_.TiledBg,
 	cr.plugins_.Touch,
+	cr.plugins_.Sprite,
 	cr.behaviors.Bullet,
 	cr.behaviors.Rex_RotateTo,
 	cr.behaviors.lunarray_LiteTween,
@@ -23308,6 +23314,7 @@ cr.getObjectRefTable = function () { return [
 	cr.behaviors.DragnDrop,
 	cr.behaviors.Rex_MoveTo,
 	cr.behaviors.Sin,
+	cr.behaviors.destroy,
 	cr.system_object.prototype.cnds.OnLayoutStart,
 	cr.behaviors.Pin.prototype.acts.Pin,
 	cr.plugins_.Sprite.prototype.acts.Destroy,
@@ -23317,7 +23324,6 @@ cr.getObjectRefTable = function () { return [
 	cr.plugins_.Touch.prototype.cnds.OnTapGestureObject,
 	cr.system_object.prototype.acts.Wait,
 	cr.system_object.prototype.acts.GoToLayout,
-	cr.plugins_.GAMEEConnector.prototype.acts.SaveState,
 	cr.system_object.prototype.cnds.IsGroupActive,
 	cr.plugins_.Sprite.prototype.cnds.IsOnScreen,
 	cr.plugins_.Sprite.prototype.acts.SetPos,
@@ -23367,11 +23373,11 @@ cr.getObjectRefTable = function () { return [
 	cr.system_object.prototype.cnds.CompareVar,
 	cr.system_object.prototype.acts.AddVar,
 	cr.plugins_.LocalStorage.prototype.acts.SetItem,
+	cr.plugins_.GAMEEConnector.prototype.acts.SaveState,
 	cr.plugins_.Text.prototype.acts.SetPos,
 	cr.behaviors.lunarray_LiteTween.prototype.acts.Start,
 	cr.plugins_.Text.prototype.acts.SetVisible,
 	cr.plugins_.Sprite.prototype.cnds.CompareWidth,
-	cr.plugins_.Sprite.prototype.acts.SetPosToObject,
 	cr.behaviors.Rex_pin2imgpt.prototype.acts.Pin,
 	cr.plugins_.Sprite.prototype.acts.SetCollisions,
 	cr.behaviors.lunarray_LiteTween.prototype.cnds.OnEnd,
