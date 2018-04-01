@@ -1,5 +1,5 @@
 ﻿{
-	"version": 1522604447,
+	"version": 1522604902,
 	"fileList": [
 		"data.js",
 		"c2runtime.js",
@@ -61,6 +61,15 @@
 		"media/boost.ogg",
 		"media/lose.ogg",
 		"media/background2_music.m4a",
+		"media/boost.m4a",
+		"media/coin.m4a",
+		"media/danger.m4a",
+		"media/danger.ogg",
+		"media/engine_v2.m4a",
+		"media/explosion.m4a",
+		"media/lose.m4a",
+		"media/rocketflyby.m4a",
+		"media/gun.m4a",
 		"icon-16.png",
 		"icon-32.png",
 		"icon-114.png",
