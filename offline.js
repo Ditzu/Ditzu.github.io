@@ -1,5 +1,5 @@
 ﻿{
-	"version": 1522602331,
+	"version": 1522604447,
 	"fileList": [
 		"data.js",
 		"c2runtime.js",
@@ -60,6 +60,7 @@
 		"media/engine_v2.ogg",
 		"media/boost.ogg",
 		"media/lose.ogg",
+		"media/background2_music.m4a",
 		"icon-16.png",
 		"icon-32.png",
 		"icon-114.png",
