@@ -26091,7 +26091,6 @@ cr.getObjectRefTable = function () { return [
 	cr.plugins_.TiledBg.prototype.acts.SetOpacity,
 	cr.plugins_.Sprite.prototype.cnds.IsOutsideLayout,
 	cr.plugins_.Audio.prototype.cnds.IsTagPlaying,
-	cr.plugins_.Audio.prototype.acts.Preload,
 	cr.system_object.prototype.exps.round,
 	cr.system_object.prototype.exps.abs,
 	cr.plugins_.Sprite.prototype.acts.MoveForward,
