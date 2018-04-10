@@ -25991,15 +25991,15 @@ cr.behaviors.scrollto = function(runtime)
 	behaviorProto.acts = new Acts();
 }());
 cr.getObjectRefTable = function () { return [
-	cr.plugins_.Audio,
-	cr.plugins_.GAMEEConnector,
 	cr.plugins_.LocalStorage,
 	cr.plugins_.Particles,
+	cr.plugins_.Audio,
+	cr.plugins_.GAMEEConnector,
 	cr.plugins_.Keyboard,
+	cr.plugins_.Sprite,
 	cr.plugins_.Text,
 	cr.plugins_.TiledBg,
 	cr.plugins_.Touch,
-	cr.plugins_.Sprite,
 	cr.behaviors.Bullet,
 	cr.behaviors.Rex_RotateTo,
 	cr.behaviors.lunarray_LiteTween,
@@ -26108,11 +26108,14 @@ cr.getObjectRefTable = function () { return [
 	cr.plugins_.LocalStorage.prototype.acts.GetItem,
 	cr.plugins_.LocalStorage.prototype.cnds.OnItemGet,
 	cr.plugins_.LocalStorage.prototype.exps.ItemValue,
+	cr.plugins_.Keyboard.prototype.cnds.OnAnyKey,
+	cr.plugins_.LocalStorage.prototype.acts.ClearStorage,
 	cr.plugins_.GAMEEConnector.prototype.acts.UpdateScore,
 	cr.plugins_.GAMEEConnector.prototype.cnds.onInterruption,
 	cr.system_object.prototype.acts.SetTimescale,
 	cr.plugins_.GAMEEConnector.prototype.cnds.onGameStart,
 	cr.system_object.prototype.acts.RestartLayout,
 	cr.plugins_.GAMEEConnector.prototype.cnds.onSound,
-	cr.plugins_.Audio.prototype.acts.SetSilent
+	cr.plugins_.Audio.prototype.acts.SetSilent,
+	cr.plugins_.Touch.prototype.cnds.OnTouchObject
 ];};

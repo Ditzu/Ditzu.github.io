@@ -1,5 +1,5 @@
 ﻿{
-	"version": 1522604902,
+	"version": 1523353148,
 	"fileList": [
 		"data.js",
 		"c2runtime.js",
@@ -52,6 +52,8 @@
 		"images/turet-sheet0.png",
 		"images/bullet-sheet0.png",
 		"images/indicator_enemy_plane-sheet0.png",
+		"images/plus-sheet0.png",
+		"images/minus-sheet0.png",
 		"media/background2_music.ogg",
 		"media/coin.ogg",
 		"media/explosion.ogg",

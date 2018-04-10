@@ -1,5 +1,5 @@
 ﻿CACHE MANIFEST
-#1522604902
+#1523353148
 data.js
 c2runtime.js
 jquery-2.1.1.min.js
@@ -51,6 +51,8 @@ images/enemy_plane-sheet0.png
 images/turet-sheet0.png
 images/bullet-sheet0.png
 images/indicator_enemy_plane-sheet0.png
+images/plus-sheet0.png
+images/minus-sheet0.png
 media/background2_music.ogg
 media/coin.ogg
 media/explosion.ogg
