@@ -23435,6 +23435,125 @@ cr.behaviors.DragnDrop = function(runtime)
 }());
 ;
 ;
+cr.behaviors.Flash = function(runtime)
+{
+	this.runtime = runtime;
+};
+(function ()
+{
+	var behaviorProto = cr.behaviors.Flash.prototype;
+	behaviorProto.Type = function(behavior, objtype)
+	{
+		this.behavior = behavior;
+		this.objtype = objtype;
+		this.runtime = behavior.runtime;
+	};
+	var behtypeProto = behaviorProto.Type.prototype;
+	behtypeProto.onCreate = function()
+	{
+	};
+	behaviorProto.Instance = function(type, inst)
+	{
+		this.type = type;
+		this.behavior = type.behavior;
+		this.inst = inst;				// associated object instance to modify
+		this.runtime = type.runtime;
+	};
+	var behinstProto = behaviorProto.Instance.prototype;
+	behinstProto.onCreate = function()
+	{
+		this.ontime = 0;
+		this.offtime = 0;
+		this.stage = 0;			// 0 = on, 1 = off
+		this.stagetimeleft = 0;
+		this.timeleft = 0;
+	};
+	behinstProto.saveToJSON = function ()
+	{
+		return {
+			"ontime": this.ontime,
+			"offtime": this.offtime,
+			"stage": this.stage,
+			"stagetimeleft": this.stagetimeleft,
+			"timeleft": this.timeleft
+		};
+	};
+	behinstProto.loadFromJSON = function (o)
+	{
+		this.ontime = o["ontime"];
+		this.offtime = o["offtime"];
+		this.stage = o["stage"];
+		this.stagetimeleft = o["stagetimeleft"];
+		this.timeleft = o["timeleft"];
+		if (this.timeleft === null)
+			this.timeleft = Infinity;
+	};
+	behinstProto.tick = function ()
+	{
+		if (this.timeleft <= 0)
+			return;		// not flashing
+		var dt = this.runtime.getDt(this.inst);
+		this.timeleft -= dt;
+		if (this.timeleft <= 0)
+		{
+			this.timeleft = 0;
+			this.inst.visible = true;
+			this.runtime.redraw = true;
+			this.runtime.trigger(cr.behaviors.Flash.prototype.cnds.OnFlashEnded, this.inst);
+			return;
+		}
+		this.stagetimeleft -= dt;
+		if (this.stagetimeleft <= 0)
+		{
+			if (this.stage === 0)
+			{
+				this.inst.visible = false;
+				this.stage = 1;
+				this.stagetimeleft += this.offtime;
+			}
+			else
+			{
+				this.inst.visible = true;
+				this.stage = 0;
+				this.stagetimeleft += this.ontime;
+			}
+			this.runtime.redraw = true;
+		}
+	};
+	function Cnds() {};
+	Cnds.prototype.IsFlashing = function ()
+	{
+		return this.timeleft > 0;
+	};
+	Cnds.prototype.OnFlashEnded = function ()
+	{
+		return true;
+	};
+	behaviorProto.cnds = new Cnds();
+	function Acts() {};
+	Acts.prototype.Flash = function (on_, off_, dur_)
+	{
+		this.ontime = on_;
+		this.offtime = off_;
+		this.stage = 1;		// always start off
+		this.stagetimeleft = off_;
+		this.timeleft = dur_;
+		this.inst.visible = false;
+		this.runtime.redraw = true;
+	};
+	Acts.prototype.StopFlashing = function ()
+	{
+		this.timeleft = 0;
+		this.inst.visible = true;
+		this.runtime.redraw = true;
+		return;
+	};
+	behaviorProto.acts = new Acts();
+	function Exps() {};
+	behaviorProto.exps = new Exps();
+}());
+;
+;
 cr.behaviors.Pin = function(runtime)
 {
 	this.runtime = runtime;
@@ -25991,26 +26110,27 @@ cr.behaviors.scrollto = function(runtime)
 	behaviorProto.acts = new Acts();
 }());
 cr.getObjectRefTable = function () { return [
-	cr.plugins_.Audio,
-	cr.plugins_.GAMEEConnector,
-	cr.plugins_.LocalStorage,
-	cr.plugins_.Particles,
-	cr.plugins_.Keyboard,
 	cr.plugins_.Text,
 	cr.plugins_.TiledBg,
-	cr.plugins_.Touch,
 	cr.plugins_.Sprite,
+	cr.plugins_.Touch,
+	cr.plugins_.Audio,
+	cr.plugins_.GAMEEConnector,
+	cr.plugins_.Keyboard,
+	cr.plugins_.LocalStorage,
+	cr.plugins_.Particles,
 	cr.behaviors.Bullet,
 	cr.behaviors.Rex_RotateTo,
 	cr.behaviors.lunarray_LiteTween,
 	cr.behaviors.Pin,
+	cr.behaviors.Flash,
 	cr.behaviors.scrollto,
 	cr.behaviors.bound,
 	cr.behaviors.Rotate,
 	cr.behaviors.Rex_pin2imgpt,
+	cr.behaviors.Sin,
 	cr.behaviors.DragnDrop,
 	cr.behaviors.Rex_MoveTo,
-	cr.behaviors.Sin,
 	cr.behaviors.destroy,
 	cr.system_object.prototype.cnds.OnLayoutStart,
 	cr.behaviors.Pin.prototype.acts.Pin,
@@ -26064,12 +26184,12 @@ cr.getObjectRefTable = function () { return [
 	cr.plugins_.Sprite.prototype.cnds.OnCreated,
 	cr.plugins_.Sprite.prototype.cnds.OnCollision,
 	cr.plugins_.GAMEEConnector.prototype.acts.GameOver,
+	cr.system_object.prototype.acts.AddVar,
 	cr.plugins_.Sprite.prototype.cnds.CompareFrame,
 	cr.plugins_.Sprite.prototype.acts.StartAnim,
 	cr.plugins_.Sprite.prototype.cnds.PickByUID,
 	cr.behaviors.Rex_RotateTo.prototype.acts.SetTargetAngleToPos,
 	cr.system_object.prototype.cnds.CompareVar,
-	cr.system_object.prototype.acts.AddVar,
 	cr.plugins_.LocalStorage.prototype.acts.SetItem,
 	cr.plugins_.GAMEEConnector.prototype.acts.SaveState,
 	cr.plugins_.Text.prototype.acts.SetPos,
@@ -26091,6 +26211,7 @@ cr.getObjectRefTable = function () { return [
 	cr.plugins_.TiledBg.prototype.acts.SetOpacity,
 	cr.plugins_.Sprite.prototype.cnds.IsOutsideLayout,
 	cr.plugins_.Audio.prototype.cnds.IsTagPlaying,
+	cr.plugins_.Sprite.prototype.acts.SetAnimFrame,
 	cr.system_object.prototype.exps.round,
 	cr.system_object.prototype.exps.abs,
 	cr.plugins_.Sprite.prototype.acts.MoveForward,
@@ -26099,7 +26220,6 @@ cr.getObjectRefTable = function () { return [
 	cr.behaviors.Rex_MoveTo.prototype.acts.SetTargetPos,
 	cr.plugins_.Touch.prototype.cnds.IsTouchingObject,
 	cr.plugins_.Text.prototype.cnds.CompareInstanceVar,
-	cr.plugins_.Sprite.prototype.acts.SetAnimFrame,
 	cr.system_object.prototype.cnds.Else,
 	cr.behaviors.Sin.prototype.acts.SetActive,
 	cr.plugins_.Text.prototype.acts.Destroy,
@@ -26108,6 +26228,8 @@ cr.getObjectRefTable = function () { return [
 	cr.plugins_.LocalStorage.prototype.acts.GetItem,
 	cr.plugins_.LocalStorage.prototype.cnds.OnItemGet,
 	cr.plugins_.LocalStorage.prototype.exps.ItemValue,
+	cr.plugins_.Keyboard.prototype.cnds.OnAnyKey,
+	cr.plugins_.LocalStorage.prototype.acts.ClearStorage,
 	cr.plugins_.GAMEEConnector.prototype.acts.UpdateScore,
 	cr.plugins_.GAMEEConnector.prototype.cnds.onInterruption,
 	cr.system_object.prototype.acts.SetTimescale,

@@ -1,5 +1,5 @@
 ﻿CACHE MANIFEST
-#1522604902
+#1523856848
 data.js
 c2runtime.js
 jquery-2.1.1.min.js
@@ -51,6 +51,14 @@ images/enemy_plane-sheet0.png
 images/turet-sheet0.png
 images/bullet-sheet0.png
 images/indicator_enemy_plane-sheet0.png
+images/bullet_2-sheet0.png
+images/score_icon_x-sheet0.png
+images/score_icon_x-sheet1.png
+images/speed_icon-sheet0.png
+images/speed_propeller-sheet0.png
+images/gun1_icon-sheet0.png
+images/invisibility-sheet0.png
+images/invisibility-sheet1.png
 media/background2_music.ogg
 media/coin.ogg
 media/explosion.ogg
@@ -69,6 +77,8 @@ media/explosion.m4a
 media/lose.m4a
 media/rocketflyby.m4a
 media/gun.m4a
+media/gun_sound.m4a
+media/gun_sound.ogg
 icon-16.png
 icon-32.png
 icon-114.png
