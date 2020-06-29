@@ -1,7 +1,7 @@
 {
-	"name": "Airsoft_Project",
-	"short_name": "Airsoft_Project",
-	"description": "airsoft",
+	"name": "Escape Room",
+	"short_name": "Escape Room",
+	"description": "",
 	"start_url": "index.html",
 	"display": "fullscreen",
 	"orientation": "landscape",
