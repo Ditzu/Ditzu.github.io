@@ -1885,7 +1885,8 @@ self.C3_JsPropNameTable = [
 	{Exit_Number: 0},
 	{Foaie_Calcul: 0},
 	{Ghicitoare: 0},
-	{Calculator: 0}
+	{Calculator: 0},
+	{Touch_Order: 0}
 ];
 
 "use strict";
@@ -2041,13 +2042,6 @@ self.C3_JsPropNameTable = [
 		() => 670,
 		() => 217,
 		() => 350,
-		() => 1066,
-		() => 175,
-		() => 444,
-		() => 523,
-		() => 355,
-		() => 879,
-		() => 540,
 		() => "2059109927",
 		() => 0.1,
 		p => {
